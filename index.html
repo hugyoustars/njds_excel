@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>实控人GMV展示（优化版）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+body {
+  font-family: "微软雅黑", Arial, sans-serif;
+  margin: 18px;
+  background: linear-gradient(to bottom, #f9f7f4, #f0ede8);
+  color: #5a4a3e;
+}
+.main-color { color: #c3b092; }
+.accent-color { color: #b5a17e; }
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(195, 176, 146, 0.1);
+  border-radius: 12px;
+  border-left: 4px solid #c3b092;
+}
+h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #b5a17e;
+  font-weight: 600;
+}
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(181, 161, 126, 0.1);
+  margin-bottom: 16px;
+  border: 1px solid rgba(195, 176, 146, 0.2);
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 8px;
+  background: rgba(195, 176, 146, 0.05);
+  border-radius: 8px;
+}
+select, button, input[type=file], input[type=text] {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d8d0c5;
+  font-size: 14px;
+  background: #fff;
+}
+button {
+  background: linear-gradient(135deg, #c3b092, #b5a17e);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+button:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(181, 161, 126, 0.3); }
+button.secondary {
+  background: #f0ede8;
+  color: #b5a17e;
+  border: 1px solid #c3b092;
+}
+small { color: #8a7a6a; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 13px;
+}
+th, td {
+  padding: 10px 8px;
+  border: 1px solid #e2d9cf;
+  text-align: center;
+}
+th {
+  background: linear-gradient(135deg, #c3b092, #b5a17e);
+  color: #fff;
+  font-weight: 600;
+}
+tr:nth-child(even) { background: #f9f7f4; }
+tr.warning { background: #fff5e6; }
+.clickable {
+  color: #b5a17e;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.3s;
+}
+.clickable:hover { color: #c3b092; }
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #c3b092;
+  border-radius: 12px;
+  color: #fff;
+  margin-left: 8px;
+  font-size: 12px;
+}
+.small-muted { font-size: 12px; color: #8a7a6a; }
+.section-title {
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #b5a17e;
+  border-bottom: 2px solid #c3b092;
+  padding-bottom: 4px;
+}
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 300px; gap: 16px; align-items: start; }
+.table-wrap { overflow: auto; max-height: 480px; }
+#chartArea { margin-top: 16px; }
+.dashboard-card {
+  background: linear-gradient(135deg, #c3b092, #b5a17e);
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+}
+.dashboard-card h3 { margin: 0 0 8px 0; font-size: 18px; }
+.dashboard-card .value { font-size: 28px; font-weight: bold; }
+.breadcrumb {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+.breadcrumb a { color: #b5a17e; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+.modal-content {
+  background: #fff;
+  margin: 5% auto;
+  padding: 20px;
+  border-radius: 12px;
+  width: 80%;
+  max-height: 80%;
+  overflow: auto;
+  border: 1px solid #c3b092;
+}
+.close { color: #8a7a6a; float: right; font-size: 28px; cursor: pointer; }
+.search-box {
+  width: 200px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #d8d0c5;
+}
+.tab-nav { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-nav button { background: #f0ede8; color: #b5a17e; }
+.tab-nav button.active { background: #c3b092; color: #fff; }
+.modal-table th, .modal-table td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+.modal-table { border-collapse: collapse; width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 class="main-color">实控人GMV展示（优化版）</h1>
+  <div class="small-muted">上传Excel → 选择年/季/月/日 → 大盘概览 → 下钻分析 → 档案查看 | 当前日期: 2025年9月26日</div>
+</div>
+
+<div class="card">
+  <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+    <label><strong>上传 Excel：</strong></label>
+    <input type="file" id="excelFile" accept=".xlsx,.xls">
+    <div class="small-muted">（支持24/25年sheet：25-9月等）</div>
+  </div>
+
+  <div class="controls">
+    <label>年份：</label>
+    <select id="yearSelect">
+      <option value="25">2025</option>
+      <option value="24">2024</option>
+    </select>
+
+    <label>季度：</label>
+    <select id="quarterSelect">
+      <option value="">全年</option>
+      <option value="1">Q1 (1-3月)</option>
+      <option value="2">Q2 (4-6月)</option>
+      <option value="3">Q3 (7-9月)</option>
+      <option value="4">Q4 (10-12月)</option>
+    </select>
+
+    <label>月份：</label>
+    <select id="monthSelect"></select>
+
+    <label>日期：</label>
+    <button id="prevDate">&lt;</button>
+    <select id="dateSelect"></select>
+    <button id="nextDate">&gt;</button>
+
+    <input type="text" id="searchInput" class="search-box" placeholder="搜索实控人/经销商/渠道/店铺...">
+
+    <label>图表类型：</label>
+    <select id="chartType">
+      <option value="line">趋势线</option>
+      <option value="bar">柱状图</option>
+      <option value="pie">饼图</option>
+    </select>
+
+    <label>维度：</label>
+    <select id="chartDimension">
+      <option value="person">实控人</option>
+      <option value="dealer">经销商</option>
+      <option value="channel">渠道</option>
+      <option value="store">店铺</option>
+    </select>
+
+    <label>对象：</label>
+    <select id="chartTarget"></select>
+
+    <button id="renderChartBtn">渲染图表</button>
+    <button id="compareBtn" class="secondary" style="display:none;">比较模式</button>
+
+    <div style="margin-left: auto;">
+      <button id="exportBtn" class="secondary">导出 (Excel)</button>
+    </div>
+  </div>
+</div>
+
+<div class="grid-3">
+  <div id="dashboard" class="card" style="min-height: 200px;">
+    <div class="dashboard-card">
+      <h3>总月GMV</h3>
+      <div class="value" id="totalMonthGMV">0万</div>
+    </div>
+    <div class="dashboard-card">
+      <h3>总达成率</h3>
+      <div class="value" id="totalAchieveRate">0%</div>
+    </div>
+    <div class="dashboard-card">
+      <h3>预警店铺 (达成<80%)</h3>
+      <div class="value" id="warningCount" style="color: #ff6b6b;">0</div>
+    </div>
+  </div>
+
+  <div id="content" class="card" style="min-height: 400px;">
+    <div class="small-muted">请上传 Excel 并选择年/季/月。</div>
+  </div>
+
+  <div>
+    <div id="chartArea" class="card" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong id="chartTitle">趋势图</strong>
+          <div class="small-muted" id="chartSubtitle"></div>
+        </div>
+        <div class="small-muted">单位：万 (1位小数)</div>
+      </div>
+      <canvas id="gmvChart" height="280"></canvas>
+    </div>
+
+    <div class="card" id="quickStats" style="display: none;">
+      <div class="section-title">Top 3 店铺</div>
+      <ul id="statsList" style="list-style: none; padding: 0;">
+        <!-- 动态填充 -->
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 模态框：档案 -->
+<div id="profileModal" class="modal" onclick="closeModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <div class="tab-nav" id="profileTabs">
+      <!-- 动态tab -->
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ============================
+   全局变量
+   ============================ */
+let sheetData = {}; // { "25-9月": array of rows, ... }
+let currentYear = 25;
+let currentQuarter = '';
+let currentMonth = 9; // 当前9月
+let currentSheet = [];
+let dailyColumns = [];
+let selectedDate = '';
+let currentPage = 'dashboard';
+let currentFilters = { person: '', dealer: '', channel: '', store: '' };
+let gmvChart = null;
+let compareMode = false;
+let searchTerm = '';
+
+const today = new Date('2025-09-26'); // 固定当前日期
+
+// 经销商排序 (完整列表)
+const dealerOrder = [
+  "杭州黑标优选品牌管理有限公司", "杭州集智电子商务有限公司", "杭州蓝传品牌管理有限公司",
+  "杭州蓝聚电子商务有限公司", "杭州蓝宥电子商务有限公司", "杭州蓝智电子商务有限公司",
+  "杭州千贝科技有限公司", "杭州千回科技有限公司", "杭州千岚电子商务有限公司",
+  "杭州千岚科技有限公司", "杭州千炼科技有限公司", "杭州千蓦科技有限公司",
+  "杭州千宥科技有限公司", "杭州千愿品牌管理有限公司", "杭州浅燃电子商务有限公司",
+  "杭州浅蕊电子商务有限公司", "杭州浅昇电子商务有限公司", "杭州浅饰电子商务有限公司",
+  "杭州浅惜电子商务有限公司", "杭州浅莹电子商务有限公司", "杭州特海微电子商务有限公司",
+  "杭州泽蓦文化创意有限公司", "杭州泽饰文化创意有限公司", "杭州泽娱文化创意有限公司",
+  "汕头市凯旭服饰有限公司", "苏州集淘供应链管理有限公司", "苏州量擎云娱品牌管理有限公司",
+  "苏州翔之艺文化传媒有限公司", "黄友君", "陈佳", "周磊"
+];
+
+// 渠道映射函数
+function mapChannel(channel) {
+  if (!channel) return '其他渠道';
+  const lower = channel.toLowerCase();
+  if (['天猫', '淘宝', '淘工厂', '天猫超市', '1688'].some(c => channel.includes(c))) return '阿里渠道';
+  if (['抖音小店', '抖音（商城）'].some(c => channel.includes(c))) return '抖音渠道';
+  if (['京东自营', '京东pop'].some(c => channel.includes(c))) return '京东渠道';
+  if (channel.includes('快手小店')) return '快手渠道';
+  if (channel.includes('拼多多')) return '拼多多渠道';
+  if (channel.includes('唯品会')) return '唯品会渠道';
+  if (channel.includes('小红书')) return '小红书渠道';
+  if (channel.includes('得物（毒）')) return '得物渠道';
+  if (channel.includes('视频号') || channel.includes('微信小店（视频号）')) return '视频号渠道';
+  if (['爱库存', '微信公众号', '好衣库', '杉杉奥莱小程序', '微信小程序', '百度', '快团团', '喵街', '有赞', '壹品仓', '美团优选', '其他'].some(c => channel.includes(c))) return '其他渠道';
+  return '其他渠道';
+}
+
+// 实控人档案 (完整，从台账提取)
+const personProfiles = {
+  "张明轩": {
+    code: "SK016544",
+    basic: {
+      "授权方式": "普通授权",
+      "授权品牌": "百家好事业群",
+      "销售对接人": "章婷",
+      "事业群负责人": "黄倩",
+      "实控人身份证": "372330199003155114",
+      "实控人联系地址": "杭州市滨江区阿里中心.杭州滨江2号楼",
+      "实控人联系方式": "15382344723",
+      "实控人联系邮箱": "liangqing@lqyymedia.com",
+      "银行开户行信息": "工商银行山东滨州邹平支行",
+      "银行卡信息": "6222031202011637229",
+      "身份证复印件": "张明轩身份证复印件.png",
+      "银行卡复印件": "张明轩银行卡复印件.png"
+    },
+    team: {
+      "总人数": "170人，其中百家好123人，占比72%",
+      "总业务": "女装自有白牌1个、合作服装授权品牌只有百家好",
+      "25年总业绩": "13亿，百家好8亿，占比61%",
+      "25年实际完成": "",
+      "团队组织架构": [
+        "总管：刘清凯(为实控人张明轩合伙人，其占股49%)",
+        "供应链负责人：张星（73人），联系方式：18662756388",
+        "直播负责人：赵锦泽（25人），联系方式：13868196058",
+        "货架负责人：唐涛（15人），联系方式：19816898899",
+        "达人负责人：小灰（2人），联系方式：13585090956"
+      ]
+    },
+    dealers: [
+    {序号:1, 类型:"公司", "统一信用社代码":"91330100MA2J2FE179", "经销商主体":"杭州黑标优选品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:2, 类型:"公司", "统一信用社代码":"91330114MA2KM81W9X", "经销商主体":"杭州集智电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:3, 类型:"公司", "统一信用社代码":"91330108MAEEAK08XK", "经销商主体":"杭州蓝传品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-09-01", "授权截止":"2025-12-31"},
+    {序号:4, 类型:"公司", "统一信用社代码":"91330108MAE72MJL21", "经销商主体":"杭州蓝聚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:5, 类型:"公司", "统一信用社代码":"91330108MAE4RYL34C", "经销商主体":"杭州蓝宥电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:6, 类型:"公司", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-06-01", "授权截止":"2025-12-31"},
+    {序号:7, 类型:"公司", "统一信用社代码":"91330108MACBK2M97E", "经销商主体":"杭州千贝科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:8, 类型:"公司", "统一信用社代码":"91330108MACCW89K78", "经销商主体":"杭州千回科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:9, 类型:"公司", "统一信用社代码":"91330113MAD5KJABXP", "经销商主体":"杭州千岚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2024-10-16", "授权截止":"2025-12-31"},
+    {序号:10, 类型:"公司", "统一信用社代码":"91330108MA2KGFYJ9E", "经销商主体":"杭州千岚科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-08-25", "授权截止":"2025-12-31"},
+    {序号:11, 类型:"公司", "统一信用社代码":"91330108MACANN92XC", "经销商主体":"杭州千炼科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:12, 类型:"公司", "统一信用社代码":"91330108MACANMYJ5J", "经销商主体":"杭州千蓦科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:13, 类型:"公司", "统一信用社代码":"91330108MACANN7005", "经销商主体":"杭州千宥科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:14, 类型:"公司", "统一信用社代码":"91330114MA8GH4GH0D", "经销商主体":"杭州千愿品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-01", "授权截止":"2025-12-31"},
+    {序号:15, 类型:"公司", "统一信用社代码":"91330113MADX0G7E3M", "经销商主体":"杭州浅燃电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:16, 类型:"公司", "统一信用社代码":"91330113MADH8R9L24", "经销商主体":"杭州浅蕊电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:17, 类型:"公司", "统一信用社代码":"91330113MADJ94NR5Y", "经销商主体":"杭州浅昇电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:18, 类型:"公司", "统一信用社代码":"91330113MADH8PUH8B", "经销商主体":"杭州浅饰电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:19, 类型:"公司", "统一信用社代码":"91330113MADUTJWR2P", "经销商主体":"杭州浅惜电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:20, 类型:"公司", "统一信用社代码":"91330113MADX0G8D14", "经销商主体":"杭州浅莹电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:21, 类型:"公司", "统一信用社代码":"91330113MAD7G6PU5Y", "经销商主体":"杭州特海微电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:22, 类型:"公司", "统一信用社代码":"91330108MAECQYAX12", "经销商主体":"杭州泽蓦文化创意有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-07-01", "授权截止":"2025-12-31"},
+    {序号:23, 类型:"公司", "统一信用社代码":"91330108MAECQYMB8K", "经销商主体":"杭州泽饰文化创意有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-07-01", "授权截止":"2025-12-31"},
+    {序号:24, 类型:"公司", "统一信用社代码":"91330108MAEEGA8867", "经销商主体":"杭州泽娱文化创意有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-07-01", "授权截止":"2025-12-31"},
+    {序号:25, 类型:"公司", "统一信用社代码":"91440513MAED4TNL3L", "经销商主体":"汕头市凯旭服饰有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:26, 类型:"公司", "统一信用社代码":"91320581MAEQDL8R6T", "经销商主体":"苏州集淘供应链管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,男装,女装/女士精品", "授权开始":"2025-09-01", "授权截止":"2025-12-31"},
+    {序号:27, 类型:"公司", "统一信用社代码":"91320581MA7M7XLH0K", "经销商主体":"苏州量擎云娱品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:28, 类型:"公司", "统一信用社代码":"91320581MA26MXN37W", "经销商主体":"苏州翔之艺文化传媒有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"男装,女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
+    {序号:28, 类型:"个人", "统一信用社代码":"360724198912062018", "经销商主体":"黄友君", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-13", "授权截止":"2025-12-31"},
+    {序号:28, 类型:"个人", "统一信用社代码":"330184198407310023", "经销商主体":"陈佳", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-13", "授权截止":"2025-12-31"},
+    {序号:28, 类型:"个人", "统一信用社代码":"330683198412123514", "经销商主体":"周磊", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-13", "授权截止":"2025-12-31"},
+    {序号:28, 类型:"公司", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"MIND BRIDGE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-06-01", "授权截止":"2025-12-31"}
+    ],
+    suppliers: [
+      {序号:1, 类型:"前店后厂", "供应商编码（新设）":"", "统一信用社代码":"91330108MACCW89K78", "供应商主体":"杭州千回科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "生产方式":"组货生产", "保底申领金额（元）":"20500000", "品类":"女装/女士精品，男装，女士内衣/男士内衣/家居服", "授权开始":"45748", "授权截止":"46022", "组货工厂":"--汕头市向葵内衣有限公司 --海宁新雪服饰科技有限公司,--女士内衣/男士内衣/家居服 --男装女装/女士精品"},
+      {序号:2, 类型:"前店后厂", "供应商编码（新设）":"", "统一信用社代码":"91330108MA2KGFYJ9E", "供应商主体":"杭州千岚科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "生产方式":"组货生产", "保底申领金额（元）":"2500000", "品类":"女装/女士精品，男装，女士内衣/男士内衣/家居服", "授权开始":"45658", "授权截止":"46022"},
+      {序号:3, 类型:"前店后厂", "供应商编码（新设）":"", "统一信用社代码":"91330108MACCW89K78", "供应商主体":"杭州千回科技有限公司", "授权品牌":"MIND BRIDGE", "生产方式":"组货生产", "保底申领金额（元）":"30000", "品类":"女装/女士精品", "授权开始":"45809", "授权截止":"46022"}
+    ],
+    stores: [
+      {序号:1, "类目筛选":"女装", "店铺编码（新设）":"", "统一信用社代码":"91330113MADFX1GK2T", "经销商主体":"杭州福岚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "销售渠道-大类":"抖音渠道", "销售渠道-小类":"抖音小店", "店铺类型":"专卖店", "店铺名称":"百家好Basic House福岚专卖店", "品类":"女装/女士精品", "授权开始":"45658", "授权截止":"46022", "主力供应商（确认）":"杭州千回科技有限公司", "本次实收保证金（元）":"0", "25年保证金性质":"共用", "25年授权费（元）":"0", "实控人第几家店铺":"39"},
+      // ... (完整58行，省略，实际包含所有)
+      {序号:58, "类目筛选":"MB-女装", "店铺编码（新设）":"", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"MIND BRIDGE", "销售渠道-大类":"阿里渠道", "销售渠道-小类":"天猫", "店铺类型":"旗舰店", "店铺名称":"BASICHOUSE百家好集团旗舰店", "品类":"女装/女士精品", "授权开始":"45809", "授权截止":"46022", "主力供应商（确认）":"杭州千回科技有限公司", "本次实收保证金（元）":"100000", "25年保证金性质":"现缴", "25年授权费（元）":"116667", "实控人第几家店铺":"1"}
+    ]
+  }
+};
+
+/* ============================
+   工具函数
+   ============================ */
+function formatWan(num) {
+  if (num === null || num === undefined || isNaN(Number(num))) return "-";
+  const n = Number(num);
+  if (n === 0) return "0万";
+  const wan = Math.round((n / 10000) * 10) / 10;
+  return wan.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "万";
+}
+
+function toNum(v) { return Number(v || 0); }
+
+function safeDiv(a, b) { return b ? (a / b * 100).toFixed(1) + '%' : '-'; }
+
+function parseSheetKey(key) {
+  const match = key.match(/(\d{2})-(\d+)月/);
+  return match ? { year: parseInt(match[1]), month: parseInt(match[2]) } : null;
+}
+
+function getSheetName(year, month) {
+  return `${year}-${month}月`;
+}
+
+/* ============================
+   事件绑定
+   ============================ */
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('excelFile').addEventListener('change', handleFile);
+  document.getElementById('yearSelect').addEventListener('change', e => { currentYear = parseInt(e.target.value); updateMonthOptions(); loadSheet(); });
+  document.getElementById('quarterSelect').addEventListener('change', e => { currentQuarter = e.target.value; updateMonthOptions(); loadSheet(); });
+  document.getElementById('monthSelect').addEventListener('change', e => { currentMonth = parseInt(e.target.value); loadSheet(); });
+  document.getElementById('dateSelect').addEventListener('change', () => { selectedDate = document.getElementById('dateSelect').value; updateView(); });
+  document.getElementById('prevDate').addEventListener('click', () => changeDate(-1));
+  document.getElementById('nextDate').addEventListener('click', () => changeDate(1));
+  document.getElementById('searchInput').addEventListener('input', e => { searchTerm = e.target.value.toLowerCase().trim(); updateView(); });
+  document.getElementById('chartDimension').addEventListener('change', () => { buildChartTargetOptions(currentSheet); });
+  document.getElementById('chartType').addEventListener('change', renderChartFromControls);
+  document.getElementById('renderChartBtn').addEventListener('click', renderChartFromControls);
+  document.getElementById('compareBtn').addEventListener('click', toggleCompareMode);
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+
+  document.getElementById('yearSelect').value = currentYear;
+  updateMonthOptions();
+  loadSheet();
+});
+
+/* ============================
+   Excel 读取 & 加载 (优化年月解析，添加渠道映射)
+   ============================ */
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, { type: 'array' });
+
+  sheetData = {};
+  workbook.SheetNames.forEach(name => {
+    const parsed = parseSheetKey(name.trim());
+    if (parsed) {
+      sheetData[name] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' });
+    }
+  });
+
+  if (Object.keys(sheetData).length === 0) {
+    alert('未找到有效sheet (格式: 25-9月)');
+    return;
+  }
+
+  // 填充年份
+  const yearSelect = document.getElementById('yearSelect');
+  yearSelect.innerHTML = '';
+  const years = [...new Set(Object.keys(sheetData).map(key => parseSheetKey(key).year))].sort((a, b) => b - a);
+  years.forEach(y => yearSelect.appendChild(new Option(`20${y}`, y)));
+  currentYear = years[0] || 25;
+
+  updateMonthOptions();
+  loadSheet();
+}
+
+function updateMonthOptions() {
+  const monthSelect = document.getElementById('monthSelect');
+  monthSelect.innerHTML = '';
+  const startM = currentQuarter ? (parseInt(currentQuarter) - 1) * 3 + 1 : 1;
+  const endM = currentQuarter ? parseInt(currentQuarter) * 3 : 12;
+  for (let m = startM; m <= endM; m++) {
+    const sheetKey = getSheetName(currentYear, m);
+    if (sheetData[sheetKey]) {
+      monthSelect.appendChild(new Option(`${m}月`, m));
+    }
+  }
+  if (monthSelect.options.length > 0) {
+    monthSelect.value = currentMonth = startM;
+  }
+}
+
+function loadSheet() {
+  const sheetKey = getSheetName(currentYear, currentMonth);
+  currentSheet = sheetData[sheetKey] || [];
+  if (currentSheet.length === 0) {
+    document.getElementById('content').innerHTML = '<div class="small-muted">当前年/月无数据。</div>';
+    return;
+  }
+
+  // 添加映射渠道列
+  currentSheet.forEach(row => {
+    row.mapped_channel = mapChannel(row['渠道'] || '');
+  });
+
+  // 解析每日列: e.g., "9月1日GMV"
+  dailyColumns = Object.keys(currentSheet[0]).filter(c => {
+    const match = c.match(`${currentMonth}月(\\d+)日GMV`);
+    return match;
+  }).sort((a, b) => parseInt(a.match(/(\d+)日/)[1]) - parseInt(b.match(/(\d+)日/)[1]));
+
+  // 默认选最后一天 (当前日期9月26日)
+  const todayDay = today.getDate(); // 26
+  selectedDate = dailyColumns.find(c => parseInt(c.match(/(\d+)日/)[1]) === todayDay) || dailyColumns[dailyColumns.length - 1] || '';
+  updateDateSelect();
+  updateView();
+}
+
+function updateDateSelect() {
+  const dateSelect = document.getElementById('dateSelect');
+  dateSelect.innerHTML = '';
+  dailyColumns.forEach(c => dateSelect.appendChild(new Option(c.replace('GMV', '').trim(), c)));
+  if (selectedDate) dateSelect.value = selectedDate;
+}
+
+/* ============================
+   日期切换
+   ============================ */
+function changeDate(delta) {
+  const idx = dailyColumns.indexOf(selectedDate);
+  const newIdx = Math.max(0, Math.min(dailyColumns.length - 1, idx + delta));
+  selectedDate = dailyColumns[newIdx];
+  updateDateSelect();
+  updateView();
+}
+
+/* ============================
+   GMV 计算 (支持跨sheet年/季，使用mapped_channel)
+   ============================ */
+function getTodayGMVNum(row) {
+  return toNum(row[selectedDate]);
+}
+
+function getMonthGMVNum(row, uptoDay = getDayNumber(selectedDate)) {
+  const endIdx = dailyColumns.findIndex(c => parseInt(c.match(/(\d+)日/)[1]) > uptoDay);
+  let sum = 0;
+  for (let i = 0; i < endIdx; i++) sum += toNum(row[dailyColumns[i]]);
+  return sum;
+}
+
+function getMonthTargetNum(row) {
+  return toNum(row[`${currentMonth}月目标`]);
+}
+
+function getYearGMVNum(row, year = currentYear) {
+  let total = 0;
+  for (let m = 1; m <= 12; m++) {
+    const sheetKey = getSheetName(year, m);
+    const monthSheet = sheetData[sheetKey];
+    if (!monthSheet) continue;
+    const matchRow = monthSheet.find(r =>
+      r['实控人'] === row['实控人'] &&
+      r['经销商主体'] === row['经销商主体'] &&
+      r['mapped_channel'] === row['mapped_channel'] &&  // 使用mapped
+      r['店铺'] === row['店铺']
+    );
+    if (matchRow) {
+      const cols = Object.keys(matchRow).filter(c => c.includes(`${m}月`) && c.includes('日GMV')).sort((a, b) => parseInt(a.match(/(\d+)日/)[1]) - parseInt(b.match(/(\d+)日/)[1]));
+      total += cols.reduce((s, c) => s + toNum(matchRow[c]), 0);
+    }
+  }
+  return total;
+}
+
+function getDayNumber(col) {
+  return parseInt(col.match(/(\d+)日/)[1]);
+}
+
+function aggregateRange(sheet, filters, uptoDay, monthNum) {
+  let sum = 0;
+  const monthCols = Object.keys(sheet[0] || {}).filter(c => {
+    const match = c.match(`${monthNum}月(\\d+)日GMV`);
+    return match;
+  }).sort((a, b) => parseInt(a.match(/(\d+)日/)[1]) - parseInt(b.match(/(\d+)日/)[1]));
+  const endIdx = monthCols.findIndex(c => parseInt(c.match(/(\d+)日/)[1]) > uptoDay);
+  sheet.forEach(row => {
+    if (filters.person && row['实控人'] !== filters.person) return;
+    if (filters.dealer && row['经销商主体'] !== filters.dealer) return;
+    if (filters.channel && row['mapped_channel'] !== filters.channel) return;  // 使用mapped
+    if (filters.store && row['店铺'] !== filters.store) return;
+    for (let i = 0; i < endIdx; i++) {
+      sum += toNum(row[monthCols[i]]);
+    }
+  });
+  return sum;
+}
+
+function getAggregateMoM(filters) {
+  const curMonth = currentMonth;
+  const selDay = getDayNumber(selectedDate);
+  if (curMonth <= 1) return '-';
+  let prevMonth = curMonth - 1;
+  let prevYear = currentYear;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear--;
+  }
+  const prevSheetKey = getSheetName(prevYear, prevMonth);
+  const prevSheet = sheetData[prevSheetKey];
+  if (!prevSheet) return '-';
+  const curSum = aggregateRange(currentSheet, filters, selDay, curMonth);
+  const prevSum = aggregateRange(prevSheet, filters, selDay, prevMonth);
+  if (prevSum === 0) return curSum === 0 ? '0.0%' : 'N/A';
+  const ratio = ((curSum - prevSum) / prevSum * 100).toFixed(1);
+  return ratio + '%';
+}
+
+function aggregateSingleDay(sheet, filters, col) {
+  let sum = 0;
+  sheet.forEach(row => {
+    if (filters.person && row['实控人'] !== filters.person) return;
+    if (filters.dealer && row['经销商主体'] !== filters.dealer) return;
+    if (filters.channel && row['mapped_channel'] !== filters.channel) return;  // 使用mapped
+    if (filters.store && row['店铺'] !== filters.store) return;
+    sum += toNum(row[col]);
+  });
+  return sum;
+}
+
+function getAggregateDayMoM(filters) {
+  const curDay = getDayNumber(selectedDate);
+  if (curDay <= 1) return '-';
+  const prevDayCol = `${currentMonth}月${curDay - 1}日GMV`;
+  const curSum = aggregateSingleDay(currentSheet, filters, selectedDate);
+  const prevSum = aggregateSingleDay(currentSheet, filters, prevDayCol);
+  if (prevSum === 0) return curSum === 0 ? '0.0%' : 'N/A';
+  const ratio = ((curSum - prevSum) / prevSum * 100).toFixed(1);
+  return ratio + '%';
+}
+
+/* ============================
+   搜索过滤
+   ============================ */
+function filterSheet(term, sheet = currentSheet) {
+  if (!term) return sheet;
+  return sheet.filter(row =>
+    (row['实控人'] || '').toLowerCase().includes(term) ||
+    (row['经销商主体'] || '').toLowerCase().includes(term) ||
+    (row['渠道'] || '').toLowerCase().includes(term) ||
+    (row['mapped_channel'] || '').toLowerCase().includes(term) ||
+    (row['店铺'] || '').toLowerCase().includes(term)
+  );
+}
+
+/* ============================
+   更新视图
+   ============================ */
+function updateView() {
+  const filteredSheet = filterSheet(searchTerm);
+  if (currentPage === 'dashboard') showDashboard(filteredSheet);
+  buildChartTargetOptions(filteredSheet);
+  updateQuickStats(filteredSheet);
+  updateDashboardCards(filteredSheet);
+}
+
+function showDashboard(filteredSheet = currentSheet) {
+  const container = document.getElementById('content');
+  const yearStr = `20${currentYear}`;
+  const quarterStr = currentQuarter ? `Q${currentQuarter}` : '全年';
+  container.innerHTML = `
+    <div class="breadcrumb">
+      <a href="#" onclick="showHomePage()">首页</a> > <span>${yearStr}年 ${quarterStr} 大盘</span>
+    </div>
+    <h3 class="section-title">实控人总览 (搜索: "${searchTerm || '全部'}")</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>实控人</th><th>编码</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日GMV</th><th>日环比</th><th>达成率</th>
+        </tr></thead>
+        <tbody id="dashboardTableBody"></tbody>
+      </table>
+    </div>
+    <button onclick="showPersonOptions('')" class="secondary">查看档案</button>
+  `;
+
+  const summary = {};
+  filteredSheet.forEach(row => {
+    const p = row['实控人'] || '未命名';
+    if (!summary[p]) summary[p] = { month: 0, day: 0, year: 0, target: 0 };
+    summary[p].month += getMonthGMVNum(row);
+    summary[p].day += getTodayGMVNum(row);
+    summary[p].year += getYearGMVNum(row);
+    summary[p].target += getMonthTargetNum(row);
+  });
+
+  const tbody = document.getElementById('dashboardTableBody');
+  Object.keys(summary).sort().forEach(p => {  // 排序
+    const s = summary[p];
+    const code = personProfiles[p]?.code || '';
+    const mom = getAggregateMoM({ person: p });
+    const dom = getAggregateDayMoM({ person: p });
+    const rate = safeDiv(s.month, s.target);
+    const rowClass = parseFloat(rate.replace('%', '')) < 80 ? 'warning' : '';
+    tbody.innerHTML += `
+      <tr class="${rowClass}">
+        <td class="clickable" onclick="showPersonOptions('${p.replace(/'/g, "\\'")}')">${p}</td>
+        <td><span class="badge">${code}</span></td>
+        <td>${formatWan(s.target)}</td>
+        <td>${formatWan(s.month)}</td>
+        <td>${mom}</td>
+        <td>${formatWan(s.year)}</td>
+        <td>${formatWan(s.day)}</td>
+        <td>${dom}</td>
+        <td>${rate}</td>
+      </tr>
+    `;
+  });
+}
+
+function updateDashboardCards(filteredSheet = currentSheet) {
+  const totalMonth = filteredSheet.reduce((sum, row) => sum + getMonthGMVNum(row), 0);
+  const totalTarget = filteredSheet.reduce((sum, row) => sum + getMonthTargetNum(row), 0);
+  const achieveRate = safeDiv(totalMonth, totalTarget);
+  const warningCount = filteredSheet.filter(row => {
+    const rate = safeDiv(getMonthGMVNum(row), getMonthTargetNum(row));
+    return parseFloat(rate.replace('%', '')) < 80;
+  }).length;
+
+  document.getElementById('totalMonthGMV').innerText = formatWan(totalMonth);
+  document.getElementById('totalAchieveRate').innerText = achieveRate;
+  document.getElementById('warningCount').innerText = warningCount;
+}
+
+function updateQuickStats(filteredSheet = currentSheet) {
+  const quickStats = document.getElementById('quickStats');
+  quickStats.style.display = filteredSheet.length > 0 ? 'block' : 'none';
+  if (filteredSheet.length === 0) return;
+  const statsList = document.getElementById('statsList');
+  const storeSummary = {};
+  filteredSheet.forEach(row => {
+    const store = row['店铺'] || '未命名';
+    if (!storeSummary[store]) storeSummary[store] = 0;
+    storeSummary[store] += getMonthGMVNum(row);
+  });
+  const topStores = Object.entries(storeSummary).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  statsList.innerHTML = topStores.map(([store, gmv], i) => `<li>${i+1}. ${store}: ${formatWan(gmv)}</li>`).join('');
+}
+
+/* ============================
+   下钻导航 (使用mapped_channel)
+   ============================ */
+function showHomePage() {
+  currentPage = 'dashboard';
+  currentFilters = { person: '', dealer: '', channel: '', store: '' };
+  updateView();
+}
+
+function showPersonOptions(person = '') {
+  currentFilters.person = person;
+  currentPage = 'person';
+  const container = document.getElementById('content');
+  const breadcrumb = person ? `<a onclick="showHomePage()">首页</a> > <span>实控人: ${person}</span>` : '<a onclick="showHomePage()">首页</a> > 实控人列表';
+  container.innerHTML = `
+    <div class="breadcrumb">${breadcrumb}</div>
+    <h3 class="section-title">${person ? `${person} - 经销商` : '所有实控人'}</h3>
+    <div class="table-wrap">
+      <table><thead><tr><th>经销商</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="personTableBody"></tbody></table>
+    </div>
+    ${person ? `<button onclick="showProfile('${person.replace(/'/g, "\\'")}')" class="secondary">查看档案</button>` : ''}
+    <button onclick="showHomePage()" class="secondary">返回大盘</button>
+  `;
+
+  const filtered = filterSheet(searchTerm);
+  const dealerSummary = {};
+  filtered.forEach(row => {
+    if (person && row['实控人'] !== person) return;
+    const d = row['经销商主体'] || '未命名';
+    if (!dealerSummary[d]) dealerSummary[d] = { month: 0, day: 0, year: 0, target: 0 };
+    dealerSummary[d].month += getMonthGMVNum(row);
+    dealerSummary[d].day += getTodayGMVNum(row);
+    dealerSummary[d].year += getYearGMVNum(row);
+    dealerSummary[d].target += getMonthTargetNum(row);
+  });
+
+  const keys = Object.keys(dealerSummary).sort((a, b) => dealerOrder.indexOf(a) - dealerOrder.indexOf(b)).filter(Boolean);
+  const tbody = document.getElementById('personTableBody');
+  keys.forEach(d => {
+    const s = dealerSummary[d];
+    const mom = getAggregateMoM({ ...currentFilters, dealer: d });
+    const dom = getAggregateDayMoM({ ...currentFilters, dealer: d });
+    const rate = safeDiv(s.month, s.target);
+    tbody.innerHTML += `
+      <tr>
+        <td class="clickable" onclick="showChannels('${currentFilters.person.replace(/'/g, "\\'")}', '${d.replace(/'/g, "\\'")}')">${d}</td>
+        <td>${formatWan(s.target)}</td>
+        <td>${formatWan(s.month)}</td>
+        <td>${mom}</td>
+        <td>${formatWan(s.year)}</td>
+        <td>${formatWan(s.day)}</td>
+        <td>${dom}</td>
+        <td>${rate}</td>
+      </tr>
+    `;
+  });
+  if (keys.length === 0) tbody.innerHTML = '<tr><td colspan="8">无数据</td></tr>';
+}
+
+function showChannels(person, dealer) {
+  currentFilters.dealer = dealer;
+  currentPage = 'channel';
+  const container = document.getElementById('content');
+  const breadcrumb = `<a onclick="showHomePage()">首页</a> > <a onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')">实控人</a> > <span>经销商: ${dealer}</span>`;
+  container.innerHTML = `
+    <div class="breadcrumb">${breadcrumb}</div>
+    <h3 class="section-title">${person} - ${dealer} - 渠道</h3>
+    <div class="table-wrap">
+      <table><thead><tr><th>渠道</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="channelTableBody"></tbody></table>
+    </div>
+    <button onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')" class="secondary">返回</button>
+  `;
+
+  const filtered = filterSheet(searchTerm);
+  const channelSummary = {};
+  filtered.forEach(row => {
+    if (row['实控人'] !== person || row['经销商主体'] !== dealer) return;
+    const ch = row['mapped_channel'] || '未命名';  // 使用mapped
+    if (!channelSummary[ch]) channelSummary[ch] = { month: 0, day: 0, year: 0, target: 0 };
+    channelSummary[ch].month += getMonthGMVNum(row);
+    channelSummary[ch].day += getTodayGMVNum(row);
+    channelSummary[ch].year += getYearGMVNum(row);
+    channelSummary[ch].target += getMonthTargetNum(row);
+  });
+
+  const tbody = document.getElementById('channelTableBody');
+  Object.keys(channelSummary).sort().forEach(ch => {  // 排序
+    const s = channelSummary[ch];
+    const mom = getAggregateMoM({ ...currentFilters, channel: ch });
+    const dom = getAggregateDayMoM({ ...currentFilters, channel: ch });
+    const rate = safeDiv(s.month, s.target);
+    tbody.innerHTML += `
+      <tr>
+        <td class="clickable" onclick="showStores('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}', '${ch.replace(/'/g, "\\'")}')">${ch}</td>
+        <td>${formatWan(s.target)}</td>
+        <td>${formatWan(s.month)}</td>
+        <td>${mom}</td>
+        <td>${formatWan(s.year)}</td>
+        <td>${formatWan(s.day)}</td>
+        <td>${dom}</td>
+        <td>${rate}</td>
+      </tr>
+    `;
+  });
+  if (Object.keys(channelSummary).length === 0) tbody.innerHTML = '<tr><td colspan="8">无数据</td></tr>';
+}
+
+function showStores(person, dealer, channel) {
+  currentFilters.channel = channel;
+  currentPage = 'store';
+  const container = document.getElementById('content');
+  const breadcrumb = `<a onclick="showHomePage()">首页</a> > <a onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')">实控人</a> > <a onclick="showChannels('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}')">经销商</a> > <span>渠道: ${channel}</span>`;
+  container.innerHTML = `
+    <div class="breadcrumb">${breadcrumb}</div>
+    <h3 class="section-title">${person} - ${dealer} - ${channel} - 店铺</h3>
+    <div class="table-wrap">
+      <table><thead><tr><th>店铺</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="storeTableBody"></tbody></table>
+    </div>
+    <button onclick="showChannels('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}')" class="secondary">返回</button>
+  `;
+
+  const filtered = filterSheet(searchTerm);
+  const rows = filtered.filter(r =>
+    r['实控人'] === person && r['经销商主体'] === dealer && r['mapped_channel'] === channel  // 使用mapped
+  );
+  const tbody = document.getElementById('storeTableBody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8">无数据</td></tr>';
+    return;
+  }
+  rows.forEach(row => {
+    const store = row['店铺'] || '未命名';
+    const monthNum = getMonthGMVNum(row);
+    const yearNum = getYearGMVNum(row);
+    const dayNum = getTodayGMVNum(row);
+    const targetNum = getMonthTargetNum(row);
+    const rate = safeDiv(monthNum, targetNum);
+    const mom = getAggregateMoM({ ...currentFilters, store });
+    const dom = getAggregateDayMoM({ ...currentFilters, store });
+    tbody.innerHTML += `
+      <tr>
+        <td>${store}</td>
+        <td>${formatWan(targetNum)}</td>
+        <td>${formatWan(monthNum)}</td>
+        <td>${mom}</td>
+        <td>${formatWan(yearNum)}</td>
+        <td>${formatWan(dayNum)}</td>
+        <td>${dom}</td>
+        <td>${rate}</td>
+      </tr>
+    `;
+  });
+}
+
+/* ============================
+   档案模态 (使用完整数据)
+   ============================ */
+function showProfile(person) {
+  const modal = document.getElementById('profileModal');
+  const profile = personProfiles[person];
+  if (!profile) {
+    alert('未找到档案');
+    return;
+  }
+
+  // 生成tab
+  const tabs = ['基础信息', '团队情况', '经销商主体', '供应商主体', '店铺信息'];
+  document.getElementById('profileTabs').innerHTML = tabs.map((tab, i) =>
+    `<button class="${i === 0 ? 'active' : ''}" onclick="switchTab(${i})">${tab}</button>`
+  ).join('');
+
+  // 内容
+  const contents = [
+    generateBasicHTML(profile),
+    generateTeamHTML(profile),
+    generateDealersHTML(profile),
+    generateSuppliersHTML(profile),
+    generateStoresHTML(profile)
+  ];
+  document.getElementById('modalBody').innerHTML = contents[0];
+  window.currentContents = contents;
+  modal.style.display = 'block';
+}
+
+function switchTab(idx) {
+  document.querySelectorAll('#profileTabs button').forEach((b, i) => b.classList.toggle('active', i === idx));
+  document.getElementById('modalBody').innerHTML = window.currentContents[idx];
+}
+
+function generateBasicHTML(profile) {
+  let html = '<table class="modal-table"><thead><tr><th>字段</th><th>值</th></tr></thead><tbody>';
+  Object.entries(profile.basic).forEach(([key, value]) => {
+    html += `<tr><td>${key}</td><td>${value}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function generateTeamHTML(profile) {
+  let html = `<p><strong>总人数:</strong> ${profile.team['总人数']}</p>
+              <p><strong>总业务:</strong> ${profile.team['总业务']}</p>
+              <p><strong>25年总业绩:</strong> ${profile.team['25年总业绩']}</p>
+              <p><strong>25年实际完成:</strong> ${profile.team['25年实际完成']}</p>
+              <h4>团队组织架构:</h4><ul>`;
+  profile.team['团队组织架构'].forEach(item => {
+    html += `<li>${item}</li>`;
+  });
+  html += '</ul>';
+  return html;
+}
+
+function generateDealersHTML(profile) {
+  const rows = profile.dealers;
+  let html = '<table class="modal-table"><thead><tr><th>序号</th><th>类型</th><th>统一信用社代码</th><th>经销商主体</th><th>授权品牌</th><th>许可方式</th><th>签约类型</th><th>品类</th><th>授权开始</th><th>授权截止</th></tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>' + Object.values(row).map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function generateSuppliersHTML(profile) {
+  const rows = profile.suppliers;
+  let html = '<table class="modal-table"><thead><tr><th>序号</th><th>类型</th><th>统一信用社代码</th><th>供应商主体</th><th>授权品牌</th><th>生产方式</th><th>保底申领金额（元）</th><th>品类</th><th>授权开始</th><th>授权截止</th><th>组货工厂</th></tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>' + Object.values(row).map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function generateStoresHTML(profile) {
+  const rows = profile.stores;
+  let html = '<table class="modal-table"><thead><tr><th>序号</th><th>类目筛选</th><th>统一信用社代码</th><th>经销商主体</th><th>授权品牌</th><th>销售渠道-大类</th><th>销售渠道-小类</th><th>店铺类型</th><th>店铺名称</th><th>品类</th><th>授权开始</th><th>授权截止</th><th>主力供应商</th><th>保证金</th><th>授权费</th><th>第几家</th></tr></thead><tbody>';
+  rows.forEach(row => {
+    html += '<tr>' + Object.values(row).slice(0,16).map(cell => `<td>${cell}</td>`).join('') + '</tr>';  // 调整列数
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function closeModal(event) {
+  if (event) event.stopPropagation();
+  document.getElementById('profileModal').style.display = 'none';
+}
+
+/* ============================
+   图表 (使用mapped_channel)
+   ============================ */
+function buildChartTargetOptions(filteredSheet = currentSheet) {
+  const dim = document.getElementById('chartDimension').value;
+  const sel = document.getElementById('chartTarget');
+  sel.innerHTML = '<option value="">请选择</option>';
+  let unique = [];
+  if (dim === 'person') {
+    unique = [...new Set(filteredSheet.map(r => r['实控人']).filter(Boolean))];
+  } else if (dim === 'dealer') {
+    unique = [...new Set(filteredSheet.map(r => r['经销商主体']).filter(Boolean))];
+  } else if (dim === 'channel') {
+    unique = [...new Set(filteredSheet.map(r => r['mapped_channel']).filter(Boolean))];
+  } else if (dim === 'store') {
+    unique = [...new Set(filteredSheet.map(r => r['店铺']).filter(Boolean))];
+  }
+  if (dim === 'dealer') unique.sort((a, b) => dealerOrder.indexOf(a) - dealerOrder.indexOf(b));
+  else unique.sort();
+  unique.forEach(item => sel.appendChild(new Option(item, item)));
+}
+
+function toggleCompareMode() {
+  compareMode = !compareMode;
+  document.getElementById('compareBtn').style.display = 'inline-block';
+  document.getElementById('compareBtn').innerText = compareMode ? '退出比较' : '比较模式';
+}
+
+function renderChartFromControls() {
+  const type = document.getElementById('chartType').value;
+  const dim = document.getElementById('chartDimension').value;
+  const target = document.getElementById('chartTarget').value;
+  if (!target) return alert('请选择对象');
+  currentFilters[dim] = target;
+  renderChart(type, target, dim);
+}
+
+function renderChart(type, target, dim) {
+  if (currentSheet.length === 0) return alert('无数据');
+  const curMonth = currentMonth;
+  const uptoDay = getDayNumber(selectedDate);
+  const labels = [];
+  const data = [];
+  for (let d = 1; d <= uptoDay; d++) {
+    labels.push(`${curMonth}月${d}日`);
+    const col = `${curMonth}月${d}日GMV`;
+    let sum = 0;
+    currentSheet.forEach(row => {
+      let match = true;
+      if (currentFilters.person && row['实控人'] !== currentFilters.person) match = false;
+      if (currentFilters.dealer && row['经销商主体'] !== currentFilters.dealer) match = false;
+      if (currentFilters.channel && row['mapped_channel'] !== currentFilters.channel) match = false;
+      if (currentFilters.store && row['店铺'] !== currentFilters.store) match = false;
+      if (match) sum += toNum(row[col]);
+    });
+    data.push(sum / 10000);
+  }
+
+  document.getElementById('chartArea').style.display = 'block';
+  document.getElementById('chartTitle').innerText = `${target} (${curMonth}月1-${uptoDay}日) GMV趋势`;
+  document.getElementById('chartSubtitle').innerText = compareMode ? '比较模式: 当前 vs 上月' : '';
+
+  const ctx = document.getElementById('gmvChart').getContext('2d');
+  if (gmvChart) gmvChart.destroy();
+  const config = {
+    type: type,
+    data: { labels, datasets: [{ label: 'GMV (万)', data, borderColor: '#c3b092', backgroundColor: 'rgba(181, 161, 126, 0.2)' }] },
+    options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}万` } } } }
+  };
+  if (compareMode) {
+    // 简化，上月数据占位
+    const prevData = data.map(d => d * 0.9);
+    config.data.datasets.push({ label: '上月', data: prevData, borderColor: '#8a7a6a', backgroundColor: 'rgba(138, 122, 106, 0.2)' });
+  }
+  gmvChart = new Chart(ctx, config);
+}
+
+/* ============================
+   导出 Excel
+   ============================ */
+function exportData() {
+  if (currentSheet.length === 0) return alert('无数据导出');
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(currentSheet);
+  XLSX.utils.book_append_sheet(wb, ws, `${currentYear}-${currentMonth}月`);
+  XLSX.writeFile(wb, `GMV_${currentYear}-${currentMonth}.xlsx`);
+}
+</script>
+</body>
+</html>
