@@ -2,138 +2,364 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>实控人GMV展示（优化版）</title>
+<title>实控人GMV展示系统</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <style>
-body {
-  font-family: "微软雅黑", Arial, sans-serif;
-  margin: 18px;
-  background: linear-gradient(to bottom, #f9f7f4, #f0ede8);
-  color: #5a4a3e;
+/* ============================
+   基础样式
+   ============================ */
+:root {
+  --primary-color: #c3b092;
+  --primary-dark: #b5a17e;
+  --primary-light: #e6dfd3;
+  --primary-bg: #f9f7f4;
+  --secondary-bg: #f0ede8;
+  --text-primary: #5a4a3e;
+  --text-secondary: #8a7a6a;
+  --text-light: #a89a8c;
+  --border-color: #e2d9cf;
+  --border-light: #f0eae2;
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --danger-color: #f44336;
+  --white: #ffffff;
+  --shadow-light: 0 2px 8px rgba(181, 161, 126, 0.1);
+  --shadow-medium: 0 4px 12px rgba(181, 161, 126, 0.15);
+  --shadow-heavy: 0 6px 18px rgba(181, 161, 126, 0.2);
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  --transition: all 0.3s ease;
 }
-.main-color { color: #c3b092; }
-.accent-color { color: #b5a17e; }
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "微软雅黑", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: linear-gradient(to bottom, var(--primary-bg), var(--secondary-bg));
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ============================
+   布局组件
+   ============================ */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
   background: rgba(195, 176, 146, 0.1);
-  border-radius: 12px;
-  border-left: 4px solid #c3b092;
+  border-radius: var(--border-radius);
+  border-left: 4px solid var(--primary-color);
+  box-shadow: var(--shadow-light);
 }
-h1 {
+
+.header h1 {
   margin: 0;
   font-size: 24px;
-  color: #b5a17e;
+  color: var(--primary-dark);
   font-weight: 600;
 }
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(181, 161, 126, 0.1);
-  margin-bottom: 16px;
-  border: 1px solid rgba(195, 176, 146, 0.2);
-}
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-  padding: 8px;
-  background: rgba(195, 176, 146, 0.05);
-  border-radius: 8px;
-}
-select, button, input[type=file], input[type=text] {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #d8d0c5;
-  font-size: 14px;
-  background: #fff;
-}
-button {
-  background: linear-gradient(135deg, #c3b092, #b5a17e);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-button:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(181, 161, 126, 0.3); }
-button.secondary {
-  background: #f0ede8;
-  color: #b5a17e;
-  border: 1px solid #c3b092;
-}
-small { color: #8a7a6a; }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
+
+.header-info {
+  color: var(--text-secondary);
   font-size: 13px;
 }
-th, td {
-  padding: 10px 8px;
-  border: 1px solid #e2d9cf;
-  text-align: center;
-}
-th {
-  background: linear-gradient(135deg, #c3b092, #b5a17e);
-  color: #fff;
-  font-weight: 600;
-}
-tr:nth-child(even) { background: #f9f7f4; }
-tr.warning { background: #fff5e6; }
-.clickable {
-  color: #b5a17e;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.3s;
-}
-.clickable:hover { color: #c3b092; }
-.badge {
-  display: inline-block;
-  padding: 4px 8px;
-  background: #c3b092;
-  border-radius: 12px;
-  color: #fff;
-  margin-left: 8px;
-  font-size: 12px;
-}
-.small-muted { font-size: 12px; color: #8a7a6a; }
-.section-title {
-  font-weight: 700;
-  margin-bottom: 12px;
-  color: #b5a17e;
-  border-bottom: 2px solid #c3b092;
-  padding-bottom: 4px;
-}
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 300px; gap: 16px; align-items: start; }
-.table-wrap { overflow: auto; max-height: 480px; }
-#chartArea { margin-top: 16px; }
-.dashboard-card {
-  background: linear-gradient(135deg, #c3b092, #b5a17e);
-  color: #fff;
-  text-align: center;
+
+.card {
+  background: var(--white);
+  border-radius: var(--border-radius);
   padding: 20px;
-  border-radius: 12px;
+  box-shadow: var(--shadow-light);
+  margin-bottom: 20px;
+  border: 1px solid var(--border-light);
+  transition: var(--transition);
 }
-.dashboard-card h3 { margin: 0 0 8px 0; font-size: 18px; }
-.dashboard-card .value { font-size: 28px; font-weight: bold; }
-.breadcrumb {
+
+.card:hover {
+  box-shadow: var(--shadow-medium);
+}
+
+.card-header {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
-  font-size: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
-.breadcrumb a { color: #b5a17e; text-decoration: none; }
-.breadcrumb a:hover { text-decoration: underline; }
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin: 0;
+}
+
+/* ============================
+   表单组件
+   ============================ */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  background: var(--white);
+  transition: var(--transition);
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(195, 176, 146, 0.2);
+}
+
+.form-control-sm {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* ============================
+   按钮组件
+   ============================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: var(--border-radius-sm);
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(195, 176, 146, 0.3);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.btn-secondary {
+  background: var(--secondary-bg);
+  color: var(--primary-dark);
+  border: 1px solid var(--primary-light);
+}
+
+.btn-secondary:hover {
+  background: var(--primary-light);
+}
+
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.btn-icon {
+  padding: 8px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+}
+
+/* ============================
+   控制面板
+   ============================ */
+.controls-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(195, 176, 146, 0.05);
+  border-radius: var(--border-radius);
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ============================
+   表格样式
+   ============================ */
+.table-container {
+  overflow: auto;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-light);
+  margin-top: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--white);
+  font-weight: 600;
+  padding: 12px 10px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+}
+
+.table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(249, 247, 244, 0.5);
+}
+
+.table tbody tr:hover {
+  background: rgba(195, 176, 146, 0.08);
+}
+
+.table tbody tr.warning {
+  background: rgba(255, 152, 0, 0.1);
+}
+
+/* ============================
+   指示器卡片
+   ============================ */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.indicator-card {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow-light);
+  transition: var(--transition);
+  border-top: 4px solid var(--primary-color);
+}
+
+.indicator-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-medium);
+}
+
+.indicator-card h3 {
+  font-size: 16px;
+  color: var(--primary-dark);
+  margin: 0 0 16px 0;
+  font-weight: 600;
+  text-align: center;
+}
+
+.indicator-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.indicator-item {
+  text-align: center;
+  padding: 8px;
+  border-radius: var(--border-radius-sm);
+  background: rgba(249, 247, 244, 0.5);
+}
+
+.indicator-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.indicator-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+/* ============================
+   图表区域
+   ============================ */
+.chart-container {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  box-shadow: var(--shadow-light);
+  margin-bottom: 20px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin: 0;
+}
+
+.chart-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ============================
+   模态框
+   ============================ */
 .modal {
   display: none;
   position: fixed;
@@ -143,133 +369,405 @@ tr.warning { background: #fff5e6; }
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(2px);
 }
+
 .modal-content {
-  background: #fff;
+  background: var(--white);
   margin: 5% auto;
-  padding: 20px;
-  border-radius: 12px;
-  width: 80%;
+  padding: 24px;
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 1000px;
   max-height: 80%;
   overflow: auto;
-  border: 1px solid #c3b092;
+  box-shadow: var(--shadow-heavy);
+  border: 1px solid var(--primary-color);
+  position: relative;
 }
-.close { color: #8a7a6a; float: right; font-size: 28px; cursor: pointer; }
-.search-box {
-  width: 200px;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #d8d0c5;
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition);
 }
-.tab-nav { display: flex; gap: 8px; margin-bottom: 16px; }
-.tab-nav button { background: #f0ede8; color: #b5a17e; }
-.tab-nav button.active { background: #c3b092; color: #fff; }
-.modal-table th, .modal-table td { padding: 8px; text-align: left; border: 1px solid #ddd; }
-.modal-table { border-collapse: collapse; width: 100%; }
+
+.modal-close:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--text-primary);
+}
+
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tab-btn.active {
+  color: var(--primary-dark);
+  border-bottom-color: var(--primary-color);
+}
+
+.tab-btn:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+/* ============================
+   工具类
+   ============================ */
+.text-primary { color: var(--primary-color); }
+.text-secondary { color: var(--text-secondary); }
+.text-light { color: var(--text-light); }
+.text-success { color: var(--success-color); }
+.text-warning { color: var(--warning-color); }
+.text-danger { color: var(--danger-color); }
+
+.bg-primary { background-color: var(--primary-color); }
+.bg-secondary { background-color: var(--secondary-bg); }
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--primary-color);
+  border-radius: 12px;
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.clickable {
+  color: var(--primary-dark);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: var(--transition);
+}
+
+.clickable:hover {
+  color: var(--primary-color);
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+
+.hidden { display: none; }
+
+/* ============================
+   响应式设计
+   ============================ */
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 12px;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .controls-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .control-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .indicator-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 16px;
+  }
+  
+  .tab-nav {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-container {
+    font-size: 12px;
+  }
+  
+  .table th, .table td {
+    padding: 8px 6px;
+  }
+  
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1 class="main-color">实控人GMV展示（优化版）</h1>
-  <div class="small-muted">上传Excel → 选择年/季/月/日 → 大盘概览 → 下钻分析 → 档案查看 | 当前日期: 2025年9月26日</div>
-</div>
-
-<div class="card">
-  <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-    <label><strong>上传 Excel：</strong></label>
-    <input type="file" id="excelFile" accept=".xlsx,.xls">
-    <div class="small-muted">（支持24/25年sheet：25-9月等）</div>
+<div class="container">
+  <div class="header">
+    <h1>实控人GMV展示系统</h1>
+    <div class="header-info">上传Excel → 选择年/季/月/日 → 大盘概览 → 下钻分析 → 档案查看 | 当前日期: 2025年9月26日</div>
   </div>
 
-  <div class="controls">
-    <label>年份：</label>
-    <select id="yearSelect">
-      <option value="25">2025</option>
-      <option value="24">2024</option>
-    </select>
+  <div class="card">
+    <div class="flex-center mb-2">
+      <label class="form-label mb-0"><strong>上传 Excel：</strong></label>
+      <input type="file" id="excelFile" accept=".xlsx,.xls" class="form-control form-control-sm" style="width: auto;">
+      <span class="text-light">（支持24/25年sheet：25-9月等）</span>
+    </div>
 
-    <label>季度：</label>
-    <select id="quarterSelect">
-      <option value="">全年</option>
-      <option value="1">Q1 (1-3月)</option>
-      <option value="2">Q2 (4-6月)</option>
-      <option value="3">Q3 (7-9月)</option>
-      <option value="4">Q4 (10-12月)</option>
-    </select>
+    <div class="controls-panel">
+      <div class="control-group">
+        <label class="control-label">年份：</label>
+        <select id="yearSelect" class="form-control form-control-sm">
+          <option value="25">2025</option>
+          <option value="24">2024</option>
+        </select>
+      </div>
 
-    <label>月份：</label>
-    <select id="monthSelect"></select>
+      <div class="control-group">
+        <label class="control-label">季度：</label>
+        <select id="quarterSelect" class="form-control form-control-sm">
+          <option value="">全年</option>
+          <option value="1">Q1 (1-3月)</option>
+          <option value="2">Q2 (4-6月)</option>
+          <option value="3">Q3 (7-9月)</option>
+          <option value="4">Q4 (10-12月)</option>
+        </select>
+      </div>
 
-    <label>日期：</label>
-    <button id="prevDate">&lt;</button>
-    <select id="dateSelect"></select>
-    <button id="nextDate">&gt;</button>
+      <div class="control-group">
+        <label class="control-label">月份：</label>
+        <select id="monthSelect" class="form-control form-control-sm"></select>
+      </div>
 
-    <input type="text" id="searchInput" class="search-box" placeholder="搜索实控人/经销商/渠道/店铺...">
+      <div class="control-group">
+        <label class="control-label">日期：</label>
+        <button id="prevDate" class="btn btn-secondary btn-sm btn-icon">&lt;</button>
+        <select id="dateSelect" class="form-control form-control-sm"></select>
+        <button id="nextDate" class="btn btn-secondary btn-sm btn-icon">&gt;</button>
+      </div>
 
-    <label>图表类型：</label>
-    <select id="chartType">
-      <option value="line">趋势线</option>
-      <option value="bar">柱状图</option>
-      <option value="pie">饼图</option>
-    </select>
+      <div class="control-group">
+        <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="搜索实控人/经销商/渠道/店铺...">
+      </div>
 
-    <label>维度：</label>
-    <select id="chartDimension">
-      <option value="person">实控人</option>
-      <option value="dealer">经销商</option>
-      <option value="channel">渠道</option>
-      <option value="store">店铺</option>
-    </select>
+      <div class="control-group">
+        <label class="control-label">图表类型：</label>
+        <select id="chartType" class="form-control form-control-sm">
+          <option value="line">趋势线</option>
+          <option value="bar">柱状图</option>
+          <option value="pie">饼图</option>
+        </select>
+      </div>
 
-    <label>对象：</label>
-    <select id="chartTarget"></select>
+      <div class="control-group">
+        <label class="control-label">维度：</label>
+        <select id="chartDimension" class="form-control form-control-sm">
+          <option value="person">实控人</option>
+          <option value="dealer">经销商</option>
+          <option value="channel">渠道</option>
+          <option value="store">店铺</option>
+        </select>
+      </div>
 
-    <button id="renderChartBtn">渲染图表</button>
-    <button id="compareBtn" class="secondary" style="display:none;">比较模式</button>
+      <div class="control-group">
+        <label class="control-label">对象：</label>
+        <select id="chartTarget" class="form-control form-control-sm"></select>
+      </div>
 
-    <div style="margin-left: auto;">
-      <button id="exportBtn" class="secondary">导出 (Excel)</button>
+      <div class="control-group">
+        <button id="renderChartBtn" class="btn btn-primary btn-sm">渲染图表</button>
+        <button id="compareBtn" class="btn btn-secondary btn-sm hidden">比较模式</button>
+      </div>
+
+      <div class="control-group" style="margin-left: auto;">
+        <button id="exportBtn" class="btn btn-secondary btn-sm">导出 (Excel)</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="grid-3">
-  <div id="dashboard" class="card" style="min-height: 200px;">
-    <div class="dashboard-card">
-      <h3>总月GMV</h3>
-      <div class="value" id="totalMonthGMV">0万</div>
-    </div>
-    <div class="dashboard-card">
-      <h3>总达成率</h3>
-      <div class="value" id="totalAchieveRate">0%</div>
-    </div>
-    <div class="dashboard-card">
-      <h3>预警店铺 (达成<80%)</h3>
-      <div class="value" id="warningCount" style="color: #ff6b6b;">0</div>
-    </div>
-  </div>
-
-  <div id="content" class="card" style="min-height: 400px;">
-    <div class="small-muted">请上传 Excel 并选择年/季/月。</div>
-  </div>
-
-  <div>
-    <div id="chartArea" class="card" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <strong id="chartTitle">趋势图</strong>
-          <div class="small-muted" id="chartSubtitle"></div>
+  <div class="dashboard-grid">
+    <div class="indicator-card">
+      <h3>年指标</h3>
+      <div class="indicator-grid">
+        <div class="indicator-item">
+          <div class="indicator-label">年目标</div>
+          <div class="indicator-value" id="year-target">0万</div>
         </div>
-        <div class="small-muted">单位：万 (1位小数)</div>
+        <div class="indicator-item">
+          <div class="indicator-label">年GMV</div>
+          <div class="indicator-value" id="year-gmv">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">目标达成率</div>
+          <div class="indicator-value" id="year-achieve-rate">0%</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">同比</div>
+          <div class="indicator-value" id="year-yoy">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <h3>季指标</h3>
+      <div class="indicator-grid">
+        <div class="indicator-item">
+          <div class="indicator-label">季目标</div>
+          <div class="indicator-value" id="quarter-target">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">季GMV</div>
+          <div class="indicator-value" id="quarter-gmv">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">目标达成率</div>
+          <div class="indicator-value" id="quarter-achieve-rate">0%</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">同比</div>
+          <div class="indicator-value" id="quarter-yoy">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <h3>月指标</h3>
+      <div class="indicator-grid">
+        <div class="indicator-item">
+          <div class="indicator-label">月目标</div>
+          <div class="indicator-value" id="month-target">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">月GMV</div>
+          <div class="indicator-value" id="month-gmv">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">目标达成率</div>
+          <div class="indicator-value" id="month-achieve-rate">0%</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">同比</div>
+          <div class="indicator-value" id="month-yoy">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="indicator-card">
+      <h3>日指标</h3>
+      <div class="indicator-grid">
+        <div class="indicator-item">
+          <div class="indicator-label">日目标</div>
+          <div class="indicator-value" id="day-target">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">日GMV</div>
+          <div class="indicator-value" id="day-gmv">0万</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">目标达成率</div>
+          <div class="indicator-value" id="day-achieve-rate">0%</div>
+        </div>
+        <div class="indicator-item">
+          <div class="indicator-label">同比</div>
+          <div class="indicator-value" id="day-yoy">0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">数据概览</h2>
+      <div class="flex-center">
+        <span class="text-light" id="dataSummary">请上传 Excel 并选择年/季/月</span>
+      </div>
+    </div>
+    <div id="content">
+      <div class="text-center text-light">请上传 Excel 并选择年/季/月。</div>
+    </div>
+  </div>
+
+  <div class="flex" style="gap: 20px;">
+    <div class="chart-container" style="flex: 2; display: none;" id="chartArea">
+      <div class="chart-header">
+        <div>
+          <h3 class="chart-title" id="chartTitle">趋势图</h3>
+          <div class="chart-subtitle" id="chartSubtitle"></div>
+        </div>
+        <div class="text-light">单位：万 (1位小数)</div>
       </div>
       <canvas id="gmvChart" height="280"></canvas>
     </div>
 
-    <div class="card" id="quickStats" style="display: none;">
-      <div class="section-title">Top 3 店铺</div>
-      <ul id="statsList" style="list-style: none; padding: 0;">
+    <div class="card" style="flex: 1; display: none;" id="quickStats">
+      <div class="card-header">
+        <h3 class="card-title mb-0">Top 3 店铺</h3>
+      </div>
+      <ul id="statsList" style="list-style: none; padding: 0; margin: 0;">
         <!-- 动态填充 -->
       </ul>
     </div>
@@ -279,7 +777,7 @@ tr.warning { background: #fff5e6; }
 <!-- 模态框：档案 -->
 <div id="profileModal" class="modal" onclick="closeModal(event)">
   <div class="modal-content" onclick="event.stopPropagation()">
-    <span class="close" onclick="closeModal()">&times;</span>
+    <span class="modal-close" onclick="closeModal()">&times;</span>
     <div class="tab-nav" id="profileTabs">
       <!-- 动态tab -->
     </div>
@@ -370,47 +868,16 @@ const personProfiles = {
     },
     dealers: [
     {序号:1, 类型:"公司", "统一信用社代码":"91330100MA2J2FE179", "经销商主体":"杭州黑标优选品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:2, 类型:"公司", "统一信用社代码":"91330114MA2KM81W9X", "经销商主体":"杭州集智电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:3, 类型:"公司", "统一信用社代码":"91330108MAEEAK08XK", "经销商主体":"杭州蓝传品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-09-01", "授权截止":"2025-12-31"},
-    {序号:4, 类型:"公司", "统一信用社代码":"91330108MAE72MJL21", "经销商主体":"杭州蓝聚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:5, 类型:"公司", "统一信用社代码":"91330108MAE4RYL34C", "经销商主体":"杭州蓝宥电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:6, 类型:"公司", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-06-01", "授权截止":"2025-12-31"},
-    {序号:7, 类型:"公司", "统一信用社代码":"91330108MACBK2M97E", "经销商主体":"杭州千贝科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:8, 类型:"公司", "统一信用社代码":"91330108MACCW89K78", "经销商主体":"杭州千回科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:9, 类型:"公司", "统一信用社代码":"91330113MAD5KJABXP", "经销商主体":"杭州千岚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2024-10-16", "授权截止":"2025-12-31"},
-    {序号:10, 类型:"公司", "统一信用社代码":"91330108MA2KGFYJ9E", "经销商主体":"杭州千岚科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-08-25", "授权截止":"2025-12-31"},
-    {序号:11, 类型:"公司", "统一信用社代码":"91330108MACANN92XC", "经销商主体":"杭州千炼科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:12, 类型:"公司", "统一信用社代码":"91330108MACANMYJ5J", "经销商主体":"杭州千蓦科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:13, 类型:"公司", "统一信用社代码":"91330108MACANN7005", "经销商主体":"杭州千宥科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:14, 类型:"公司", "统一信用社代码":"91330114MA8GH4GH0D", "经销商主体":"杭州千愿品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-01", "授权截止":"2025-12-31"},
-    {序号:15, 类型:"公司", "统一信用社代码":"91330113MADX0G7E3M", "经销商主体":"杭州浅燃电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:16, 类型:"公司", "统一信用社代码":"91330113MADH8R9L24", "经销商主体":"杭州浅蕊电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:17, 类型:"公司", "统一信用社代码":"91330113MADJ94NR5Y", "经销商主体":"杭州浅昇电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:18, 类型:"公司", "统一信用社代码":"91330113MADH8PUH8B", "经销商主体":"杭州浅饰电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:19, 类型:"公司", "统一信用社代码":"91330113MADUTJWR2P", "经销商主体":"杭州浅惜电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:20, 类型:"公司", "统一信用社代码":"91330113MADX0G8D14", "经销商主体":"杭州浅莹电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:21, 类型:"公司", "统一信用社代码":"91330113MAD7G6PU5Y", "经销商主体":"杭州特海微电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:22, 类型:"公司", "统一信用社代码":"91330108MAECQYAX12", "经销商主体":"杭州泽蓦文化创意有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-07-01", "授权截止":"2025-12-31"},
-    {序号:23, 类型:"公司", "统一信用社代码":"91330108MAECQYMB8K", "经销商主体":"杭州泽饰文化创意有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-07-01", "授权截止":"2025-12-31"},
-    {序号:24, 类型:"公司", "统一信用社代码":"91330108MAEEGA8867", "经销商主体":"杭州泽娱文化创意有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-07-01", "授权截止":"2025-12-31"},
-    {序号:25, 类型:"公司", "统一信用社代码":"91440513MAED4TNL3L", "经销商主体":"汕头市凯旭服饰有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:26, 类型:"公司", "统一信用社代码":"91320581MAEQDL8R6T", "经销商主体":"苏州集淘供应链管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女士内衣/男士内衣/家居服,男装,女装/女士精品", "授权开始":"2025-09-01", "授权截止":"2025-12-31"},
-    {序号:27, 类型:"公司", "统一信用社代码":"91320581MA7M7XLH0K", "经销商主体":"苏州量擎云娱品牌管理有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"运动服/休闲服装,女士内衣/男士内衣/家居服,服饰配件/皮带/帽子/围巾,箱包皮具/热销女包/男包,男装,女装/女士精品,饰品/流行首饰/时尚饰品新", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:28, 类型:"公司", "统一信用社代码":"91320581MA26MXN37W", "经销商主体":"苏州翔之艺文化传媒有限公司", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"续签", "品类":"男装,女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31"},
-    {序号:28, 类型:"个人", "统一信用社代码":"360724198912062018", "经销商主体":"黄友君", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-13", "授权截止":"2025-12-31"},
-    {序号:28, 类型:"个人", "统一信用社代码":"330184198407310023", "经销商主体":"陈佳", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-13", "授权截止":"2025-12-31"},
-    {序号:28, 类型:"个人", "统一信用社代码":"330683198412123514", "经销商主体":"周磊", "授权品牌":"百家好/BASIC HOUSE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-03-13", "授权截止":"2025-12-31"},
     {序号:28, 类型:"公司", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"MIND BRIDGE", "许可方式":"普通许可", "签约类型":"新签", "品类":"女装/女士精品", "授权开始":"2025-06-01", "授权截止":"2025-12-31"}
     ],
     suppliers: [
-      {序号:1, 类型:"前店后厂", "供应商编码（新设）":"", "统一信用社代码":"91330108MACCW89K78", "供应商主体":"杭州千回科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "生产方式":"组货生产", "保底申领金额（元）":"20500000", "品类":"女装/女士精品，男装，女士内衣/男士内衣/家居服", "授权开始":"45748", "授权截止":"46022", "组货工厂":"--汕头市向葵内衣有限公司 --海宁新雪服饰科技有限公司,--女士内衣/男士内衣/家居服 --男装女装/女士精品"},
-      {序号:2, 类型:"前店后厂", "供应商编码（新设）":"", "统一信用社代码":"91330108MA2KGFYJ9E", "供应商主体":"杭州千岚科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "生产方式":"组货生产", "保底申领金额（元）":"2500000", "品类":"女装/女士精品，男装，女士内衣/男士内衣/家居服", "授权开始":"45658", "授权截止":"46022"},
-      {序号:3, 类型:"前店后厂", "供应商编码（新设）":"", "统一信用社代码":"91330108MACCW89K78", "供应商主体":"杭州千回科技有限公司", "授权品牌":"MIND BRIDGE", "生产方式":"组货生产", "保底申领金额（元）":"30000", "品类":"女装/女士精品", "授权开始":"45809", "授权截止":"46022"}
+      {序号:1, 类型:"前店后厂", "统一信用社代码":"91330108MACCW89K78", "供应商主体":"杭州千回科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "生产方式":"组货生产", "保底申领金额（元）":"20500000", "品类":"女装/女士精品，男装，女士内衣/男士内衣/家居服", "授权开始":"2025/4/1", "授权截止":"2025/12/31", "组货工厂":"--汕头市向葵内衣有限公司 --海宁新雪服饰科技有限公司,--女士内衣/男士内衣/家居服 --男装女装/女士精品"},
+      {序号:2, 类型:"前店后厂", "统一信用社代码":"91330108MA2KGFYJ9E", "供应商主体":"杭州千岚科技有限公司", "授权品牌":"百家好/BASIC HOUSE", "生产方式":"组货生产", "保底申领金额（元）":"2500000", "品类":"女装/女士精品，男装，女士内衣/男士内衣/家居服", "授权开始":"2025/1/1", "授权截止":"2025/12/31"},
+      {序号:3, 类型:"前店后厂", "统一信用社代码":"91330108MACCW89K78", "供应商主体":"杭州千回科技有限公司", "授权品牌":"MIND BRIDGE", "生产方式":"组货生产", "保底申领金额（元）":"30000", "品类":"女装/女士精品", "授权开始":"2025/6/1", "授权截止":"2025/12/31"}
     ],
     stores: [
-      {序号:1, "类目筛选":"女装", "店铺编码（新设）":"", "统一信用社代码":"91330113MADFX1GK2T", "经销商主体":"杭州福岚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "销售渠道-大类":"抖音渠道", "销售渠道-小类":"抖音小店", "店铺类型":"专卖店", "店铺名称":"百家好Basic House福岚专卖店", "品类":"女装/女士精品", "授权开始":"45658", "授权截止":"46022", "主力供应商（确认）":"杭州千回科技有限公司", "本次实收保证金（元）":"0", "25年保证金性质":"共用", "25年授权费（元）":"0", "实控人第几家店铺":"39"},
-      // ... (完整58行，省略，实际包含所有)
-      {序号:58, "类目筛选":"MB-女装", "店铺编码（新设）":"", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"MIND BRIDGE", "销售渠道-大类":"阿里渠道", "销售渠道-小类":"天猫", "店铺类型":"旗舰店", "店铺名称":"BASICHOUSE百家好集团旗舰店", "品类":"女装/女士精品", "授权开始":"45809", "授权截止":"46022", "主力供应商（确认）":"杭州千回科技有限公司", "本次实收保证金（元）":"100000", "25年保证金性质":"现缴", "25年授权费（元）":"116667", "实控人第几家店铺":"1"}
+    {序号:1, "类目筛选":"女装", "统一信用社代码":"91330113MADFX1GK2T", "经销商主体":"杭州福岚电子商务有限公司", "授权品牌":"百家好/BASIC HOUSE", "销售渠道-大类":"抖音渠道", "销售渠道-小类":"抖音小店", "店铺类型":"专卖店", "店铺名称":"百家好Basic House福岚专卖店", "品类":"女装/女士精品", "授权开始":"2025-01-01", "授权截止":"2025-12-31", "主力供应商（确认）":"杭州千回科技有限公司", "本次实收保证金（元）":"0", "25年保证金性质":"共用", "25年授权费（元）":"0", "实控人第几家店铺":"39"},
+    {序号:58, "类目筛选":"MB-女装", "统一信用社代码":"91330108MAE72KG652", "经销商主体":"杭州蓝智电子商务有限公司", "授权品牌":"MIND BRIDGE", "销售渠道-大类":"阿里渠道", "销售渠道-小类":"天猫", "店铺类型":"旗舰店", "店铺名称":"BASICHOUSE百家好集团旗舰店", "品类":"女装/女士精品", "授权开始":"2025/6/1", "授权截止":"2025-12-31", "主力供应商（确认）":"杭州千回科技有限公司", "本次实收保证金（元）":"100000", "25年保证金性质":"现缴", "25年授权费（元）":"116667", "实控人第几家店铺":"1"}
     ]
   }
 };
@@ -468,33 +935,152 @@ document.addEventListener('DOMContentLoaded', function() {
 async function handleFile(e) {
   const file = e.target.files[0];
   if (!file) return;
-  const data = await file.arrayBuffer();
-  const workbook = XLSX.read(data, { type: 'array' });
+  
+  console.log('开始读取文件:', file.name);
+  
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: 'array' });
 
-  sheetData = {};
-  workbook.SheetNames.forEach(name => {
-    const parsed = parseSheetKey(name.trim());
-    if (parsed) {
-      sheetData[name] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' });
+    console.log('Excel文件读取成功，Sheet列表:', workbook.SheetNames);
+    
+    sheetData = {};
+    let foundSheets = 0;
+    
+    workbook.SheetNames.forEach(name => {
+      console.log('处理Sheet:', name);
+      const parsed = parseSheetKey(name.trim());
+      if (parsed) {
+        console.log(`找到有效Sheet: ${name}, 年份: ${parsed.year}, 月份: ${parsed.month}`);
+        const sheetDataArray = XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: '' });
+        sheetData[name] = sheetDataArray;
+        foundSheets++;
+        console.log(`Sheet ${name} 数据行数:`, sheetDataArray.length);
+        if (sheetDataArray.length > 0) {
+          console.log('第一行数据:', sheetDataArray[0]);
+          console.log('所有列名:', Object.keys(sheetDataArray[0]));
+        }
+      } else {
+        console.log(`Sheet ${name} 不符合命名格式 (应为: 25-9月)`);
+      }
+    });
+
+    console.log(`总共找到 ${foundSheets} 个有效Sheet`);
+
+    if (Object.keys(sheetData).length === 0) {
+      alert('未找到有效sheet (格式应为: 25-9月)\n请检查Excel文件中的Sheet命名');
+      return;
     }
-  });
 
-  if (Object.keys(sheetData).length === 0) {
-    alert('未找到有效sheet (格式: 25-9月)');
+    // 填充年份
+    const yearSelect = document.getElementById('yearSelect');
+    yearSelect.innerHTML = '';
+    const years = [...new Set(Object.keys(sheetData).map(key => parseSheetKey(key).year))].sort((a, b) => b - a);
+    console.log('可用的年份:', years);
+    years.forEach(y => yearSelect.appendChild(new Option(`20${y}`, y)));
+    currentYear = years[0] || 25;
+
+    updateMonthOptions();
+    loadSheet();
+    
+  } catch (error) {
+    console.error('读取Excel文件时出错:', error);
+    alert('读取Excel文件失败，请检查文件格式是否正确');
+  }
+}
+
+// 增强的Sheet名称解析函数
+function parseSheetKey(key) {
+  console.log('解析Sheet名称:', key);
+  
+  // 尝试多种可能的格式
+  let match = key.match(/(\d{2})-(\d+)月/); // 25-9月
+  if (match) {
+    return { year: parseInt(match[1]), month: parseInt(match[2]) };
+  }
+  
+  match = key.match(/(\d{4})年(\d+)月/); // 2025年9月
+  if (match) {
+    return { year: parseInt(match[1].slice(-2)), month: parseInt(match[2]) };
+  }
+  
+  match = key.match(/(\d{4})-(\d+)/); // 2025-9
+  if (match) {
+    return { year: parseInt(match[1].slice(-2)), month: parseInt(match[2]) };
+  }
+  
+  match = key.match(/(\d{2})月/); // 9月 (假设当前年)
+  if (match) {
+    return { year: currentYear, month: parseInt(match[1]) };
+  }
+  
+  return null;
+}
+
+// 增强的loadSheet函数，添加更多调试信息
+function loadSheet() {
+  const sheetKey = getSheetName(currentYear, currentMonth);
+  console.log(`尝试加载Sheet: ${sheetKey}`);
+  
+  currentSheet = sheetData[sheetKey] || [];
+  console.log(`加载到 ${currentSheet.length} 行数据`);
+  
+  if (currentSheet.length === 0) {
+    document.getElementById('content').innerHTML = '<div class="text-light text-center">当前年/月无数据。</div>';
+    document.getElementById('dataSummary').textContent = '当前年/月无数据';
+    
+    // 显示可用的Sheet列表
+    const availableSheets = Object.keys(sheetData).join(', ');
+    console.log('可用的Sheet:', availableSheets);
     return;
   }
 
-  // 填充年份
-  const yearSelect = document.getElementById('yearSelect');
-  yearSelect.innerHTML = '';
-  const years = [...new Set(Object.keys(sheetData).map(key => parseSheetKey(key).year))].sort((a, b) => b - a);
-  years.forEach(y => yearSelect.appendChild(new Option(`20${y}`, y)));
-  currentYear = years[0] || 25;
+  // 添加映射渠道列
+  currentSheet.forEach(row => {
+    row.mapped_channel = mapChannel(row['渠道'] || '');
+  });
 
-  updateMonthOptions();
-  loadSheet();
+  console.log('数据列名:', Object.keys(currentSheet[0]));
+  
+  // 解析每日列: e.g., "9月1日GMV"
+  dailyColumns = Object.keys(currentSheet[0]).filter(c => {
+    const match = c.match(`${currentMonth}月(\\d+)日GMV`);
+    if (match) {
+      console.log(`找到日期列: ${c}`);
+    }
+    return match;
+  }).sort((a, b) => parseInt(a.match(/(\d+)日/)[1]) - parseInt(b.match(/(\d+)日/)[1]));
+
+  console.log(`找到 ${dailyColumns.length} 个日期列:`, dailyColumns);
+
+  // 默认选最后一天 (当前日期9月26日)
+  const todayDay = today.getDate(); // 26
+  selectedDate = dailyColumns.find(c => parseInt(c.match(/(\d+)日/)[1]) === todayDay) || dailyColumns[dailyColumns.length - 1] || '';
+  console.log('选中的日期列:', selectedDate);
+  
+  updateDateSelect();
+  updateView();
+  
+  // 更新数据摘要
+  const totalMonth = currentSheet.reduce((sum, row) => sum + getMonthGMVNum(row), 0);
+  document.getElementById('dataSummary').textContent = `已加载 ${currentSheet.length} 行数据，月GMV: ${formatWan(totalMonth)}`;
 }
 
+// 添加一个测试函数，用于检查数据
+function debugData() {
+  console.log('=== 数据调试信息 ===');
+  console.log('当前Sheet数据:', currentSheet);
+  console.log('SheetData对象:', sheetData);
+  console.log('当前筛选条件:', currentFilters);
+  console.log('搜索关键词:', searchTerm);
+  
+  if (currentSheet.length > 0) {
+    console.log('第一行数据示例:', currentSheet[0]);
+    console.log('所有列名:', Object.keys(currentSheet[0]));
+  }
+}
+
+// 在控制台中可以调用 debugData() 来检查数据状态
 function updateMonthOptions() {
   const monthSelect = document.getElementById('monthSelect');
   monthSelect.innerHTML = '';
@@ -515,7 +1101,8 @@ function loadSheet() {
   const sheetKey = getSheetName(currentYear, currentMonth);
   currentSheet = sheetData[sheetKey] || [];
   if (currentSheet.length === 0) {
-    document.getElementById('content').innerHTML = '<div class="small-muted">当前年/月无数据。</div>';
+    document.getElementById('content').innerHTML = '<div class="text-light text-center">当前年/月无数据。</div>';
+    document.getElementById('dataSummary').textContent = '当前年/月无数据';
     return;
   }
 
@@ -535,6 +1122,37 @@ function loadSheet() {
   selectedDate = dailyColumns.find(c => parseInt(c.match(/(\d+)日/)[1]) === todayDay) || dailyColumns[dailyColumns.length - 1] || '';
   updateDateSelect();
   updateView();
+}
+
+function updateDashboardIndicators(data) {
+  // 年数据
+  document.getElementById('year-target').textContent = formatNumber(data.yearTarget) + '万';
+  document.getElementById('year-gmv').textContent = formatNumber(data.yearGMV) + '万';
+  document.getElementById('year-achieve-rate').textContent = (data.yearAchieveRate || 0).toFixed(1) + '%';
+  document.getElementById('year-yoy').textContent = (data.yearYOY || 0).toFixed(1) + '%';
+
+  // 季数据
+  document.getElementById('quarter-target').textContent = formatNumber(data.quarterTarget) + '万';
+  document.getElementById('quarter-gmv').textContent = formatNumber(data.quarterGMV) + '万';
+  document.getElementById('quarter-achieve-rate').textContent = (data.quarterAchieveRate || 0).toFixed(1) + '%';
+  document.getElementById('quarter-yoy').textContent = (data.quarterYOY || 0).toFixed(1) + '%';
+
+  // 月数据
+  document.getElementById('month-target').textContent = formatNumber(data.monthTarget) + '万';
+  document.getElementById('month-gmv').textContent = formatNumber(data.monthGMV) + '万';
+  document.getElementById('month-achieve-rate').textContent = (data.monthAchieveRate || 0).toFixed(1) + '%';
+  document.getElementById('month-yoy').textContent = (data.monthYOY || 0).toFixed(1) + '%';
+
+  // 日数据
+  document.getElementById('day-target').textContent = formatNumber(data.dayTarget) + '万';
+  document.getElementById('day-gmv').textContent = formatNumber(data.dayGMV) + '万';
+  document.getElementById('day-achieve-rate').textContent = (data.dayAchieveRate || 0).toFixed(1) + '%';
+  document.getElementById('day-yoy').textContent = (data.dayYOY || 0).toFixed(1) + '%';
+}
+
+// 辅助函数：格式化数字（保留1位小数）
+function formatNumber(num) {
+  return (num || 0).toFixed(1);
 }
 
 function updateDateSelect() {
@@ -689,19 +1307,23 @@ function showDashboard(filteredSheet = currentSheet) {
   const yearStr = `20${currentYear}`;
   const quarterStr = currentQuarter ? `Q${currentQuarter}` : '全年';
   container.innerHTML = `
-    <div class="breadcrumb">
-      <a href="#" onclick="showHomePage()">首页</a> > <span>${yearStr}年 ${quarterStr} 大盘</span>
+    <div class="flex mb-2">
+      <a href="#" onclick="showHomePage()" class="clickable">首页</a> 
+      <span class="text-light mx-1">></span>
+      <span>${yearStr}年 ${quarterStr} 大盘</span>
     </div>
-    <h3 class="section-title">实控人总览 (搜索: "${searchTerm || '全部'}")</h3>
-    <div class="table-wrap">
-      <table>
+    <h3 class="card-title mb-2">实控人总览 (搜索: "${searchTerm || '全部'}")</h3>
+    <div class="table-container">
+      <table class="table">
         <thead><tr>
           <th>实控人</th><th>编码</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日GMV</th><th>日环比</th><th>达成率</th>
         </tr></thead>
         <tbody id="dashboardTableBody"></tbody>
       </table>
     </div>
-    <button onclick="showPersonOptions('')" class="secondary">查看档案</button>
+    <div class="flex-center mt-2">
+      <button onclick="showPersonOptions('')" class="btn btn-secondary">查看档案</button>
+    </div>
   `;
 
   const summary = {};
@@ -724,7 +1346,7 @@ function showDashboard(filteredSheet = currentSheet) {
     const rowClass = parseFloat(rate.replace('%', '')) < 80 ? 'warning' : '';
     tbody.innerHTML += `
       <tr class="${rowClass}">
-        <td class="clickable" onclick="showPersonOptions('${p.replace(/'/g, "\\'")}')">${p}</td>
+        <td><span class="clickable" onclick="showPersonOptions('${p.replace(/'/g, "\\'")}')">${p}</span></td>
         <td><span class="badge">${code}</span></td>
         <td>${formatWan(s.target)}</td>
         <td>${formatWan(s.month)}</td>
@@ -736,20 +1358,16 @@ function showDashboard(filteredSheet = currentSheet) {
       </tr>
     `;
   });
+  
+  // 更新数据摘要
+  const totalMonth = filteredSheet.reduce((sum, row) => sum + getMonthGMVNum(row), 0);
+  const totalTarget = filteredSheet.reduce((sum, row) => sum + getMonthTargetNum(row), 0);
+  document.getElementById('dataSummary').textContent = `共 ${Object.keys(summary).length} 个实控人，月GMV: ${formatWan(totalMonth)}，目标: ${formatWan(totalTarget)}`;
 }
 
 function updateDashboardCards(filteredSheet = currentSheet) {
-  const totalMonth = filteredSheet.reduce((sum, row) => sum + getMonthGMVNum(row), 0);
-  const totalTarget = filteredSheet.reduce((sum, row) => sum + getMonthTargetNum(row), 0);
-  const achieveRate = safeDiv(totalMonth, totalTarget);
-  const warningCount = filteredSheet.filter(row => {
-    const rate = safeDiv(getMonthGMVNum(row), getMonthTargetNum(row));
-    return parseFloat(rate.replace('%', '')) < 80;
-  }).length;
-
-  document.getElementById('totalMonthGMV').innerText = formatWan(totalMonth);
-  document.getElementById('totalAchieveRate').innerText = achieveRate;
-  document.getElementById('warningCount').innerText = warningCount;
+  // 这里可以添加更详细的仪表盘数据计算
+  // 目前已在showDashboard中更新数据摘要
 }
 
 function updateQuickStats(filteredSheet = currentSheet) {
@@ -764,7 +1382,12 @@ function updateQuickStats(filteredSheet = currentSheet) {
     storeSummary[store] += getMonthGMVNum(row);
   });
   const topStores = Object.entries(storeSummary).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  statsList.innerHTML = topStores.map(([store, gmv], i) => `<li>${i+1}. ${store}: ${formatWan(gmv)}</li>`).join('');
+  statsList.innerHTML = topStores.map(([store, gmv], i) => 
+    `<li class="flex-between mb-1" style="padding: 8px; border-bottom: 1px solid var(--border-light);">
+      <span>${i+1}. ${store}</span>
+      <strong class="text-primary">${formatWan(gmv)}</strong>
+    </li>`
+  ).join('');
 }
 
 /* ============================
@@ -780,15 +1403,19 @@ function showPersonOptions(person = '') {
   currentFilters.person = person;
   currentPage = 'person';
   const container = document.getElementById('content');
-  const breadcrumb = person ? `<a onclick="showHomePage()">首页</a> > <span>实控人: ${person}</span>` : '<a onclick="showHomePage()">首页</a> > 实控人列表';
+  const breadcrumb = person ? 
+    `<a onclick="showHomePage()" class="clickable">首页</a> <span class="text-light mx-1">></span> <span>实控人: ${person}</span>` : 
+    `<a onclick="showHomePage()" class="clickable">首页</a> <span class="text-light mx-1">></span> 实控人列表`;
   container.innerHTML = `
-    <div class="breadcrumb">${breadcrumb}</div>
-    <h3 class="section-title">${person ? `${person} - 经销商` : '所有实控人'}</h3>
-    <div class="table-wrap">
-      <table><thead><tr><th>经销商</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="personTableBody"></tbody></table>
+    <div class="flex mb-2">${breadcrumb}</div>
+    <h3 class="card-title mb-2">${person ? `${person} - 经销商` : '所有实控人'}</h3>
+    <div class="table-container">
+      <table class="table"><thead><tr><th>经销商</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="personTableBody"></tbody></table>
     </div>
-    ${person ? `<button onclick="showProfile('${person.replace(/'/g, "\\'")}')" class="secondary">查看档案</button>` : ''}
-    <button onclick="showHomePage()" class="secondary">返回大盘</button>
+    <div class="flex-center mt-2">
+      ${person ? `<button onclick="showProfile('${person.replace(/'/g, "\\'")}')" class="btn btn-secondary">查看档案</button>` : ''}
+      <button onclick="showHomePage()" class="btn btn-secondary ml-1">返回大盘</button>
+    </div>
   `;
 
   const filtered = filterSheet(searchTerm);
@@ -812,7 +1439,7 @@ function showPersonOptions(person = '') {
     const rate = safeDiv(s.month, s.target);
     tbody.innerHTML += `
       <tr>
-        <td class="clickable" onclick="showChannels('${currentFilters.person.replace(/'/g, "\\'")}', '${d.replace(/'/g, "\\'")}')">${d}</td>
+        <td><span class="clickable" onclick="showChannels('${currentFilters.person.replace(/'/g, "\\'")}', '${d.replace(/'/g, "\\'")}')">${d}</span></td>
         <td>${formatWan(s.target)}</td>
         <td>${formatWan(s.month)}</td>
         <td>${mom}</td>
@@ -823,21 +1450,23 @@ function showPersonOptions(person = '') {
       </tr>
     `;
   });
-  if (keys.length === 0) tbody.innerHTML = '<tr><td colspan="8">无数据</td></tr>';
+  if (keys.length === 0) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-light">无数据</td></tr>';
 }
 
 function showChannels(person, dealer) {
   currentFilters.dealer = dealer;
   currentPage = 'channel';
   const container = document.getElementById('content');
-  const breadcrumb = `<a onclick="showHomePage()">首页</a> > <a onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')">实控人</a> > <span>经销商: ${dealer}</span>`;
+  const breadcrumb = `<a onclick="showHomePage()" class="clickable">首页</a> <span class="text-light mx-1">></span> <a onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')" class="clickable">实控人</a> <span class="text-light mx-1">></span> <span>经销商: ${dealer}</span>`;
   container.innerHTML = `
-    <div class="breadcrumb">${breadcrumb}</div>
-    <h3 class="section-title">${person} - ${dealer} - 渠道</h3>
-    <div class="table-wrap">
-      <table><thead><tr><th>渠道</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="channelTableBody"></tbody></table>
+    <div class="flex mb-2">${breadcrumb}</div>
+    <h3 class="card-title mb-2">${person} - ${dealer} - 渠道</h3>
+    <div class="table-container">
+      <table class="table"><thead><tr><th>渠道</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="channelTableBody"></tbody></table>
     </div>
-    <button onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')" class="secondary">返回</button>
+    <div class="flex-center mt-2">
+      <button onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')" class="btn btn-secondary">返回</button>
+    </div>
   `;
 
   const filtered = filterSheet(searchTerm);
@@ -860,7 +1489,7 @@ function showChannels(person, dealer) {
     const rate = safeDiv(s.month, s.target);
     tbody.innerHTML += `
       <tr>
-        <td class="clickable" onclick="showStores('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}', '${ch.replace(/'/g, "\\'")}')">${ch}</td>
+        <td><span class="clickable" onclick="showStores('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}', '${ch.replace(/'/g, "\\'")}')">${ch}</span></td>
         <td>${formatWan(s.target)}</td>
         <td>${formatWan(s.month)}</td>
         <td>${mom}</td>
@@ -871,21 +1500,23 @@ function showChannels(person, dealer) {
       </tr>
     `;
   });
-  if (Object.keys(channelSummary).length === 0) tbody.innerHTML = '<tr><td colspan="8">无数据</td></tr>';
+  if (Object.keys(channelSummary).length === 0) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-light">无数据</td></tr>';
 }
 
 function showStores(person, dealer, channel) {
   currentFilters.channel = channel;
   currentPage = 'store';
   const container = document.getElementById('content');
-  const breadcrumb = `<a onclick="showHomePage()">首页</a> > <a onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')">实控人</a> > <a onclick="showChannels('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}')">经销商</a> > <span>渠道: ${channel}</span>`;
+  const breadcrumb = `<a onclick="showHomePage()" class="clickable">首页</a> <span class="text-light mx-1">></span> <a onclick="showPersonOptions('${person.replace(/'/g, "\\'")}')" class="clickable">实控人</a> <span class="text-light mx-1">></span> <a onclick="showChannels('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}')" class="clickable">经销商</a> <span class="text-light mx-1">></span> <span>渠道: ${channel}</span>`;
   container.innerHTML = `
-    <div class="breadcrumb">${breadcrumb}</div>
-    <h3 class="section-title">${person} - ${dealer} - ${channel} - 店铺</h3>
-    <div class="table-wrap">
-      <table><thead><tr><th>店铺</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="storeTableBody"></tbody></table>
+    <div class="flex mb-2">${breadcrumb}</div>
+    <h3 class="card-title mb-2">${person} - ${dealer} - ${channel} - 店铺</h3>
+    <div class="table-container">
+      <table class="table"><thead><tr><th>店铺</th><th>月目标</th><th>月GMV</th><th>月环比</th><th>年GMV</th><th>当日</th><th>日环比</th><th>达成率</th></tr></thead><tbody id="storeTableBody"></tbody></table>
     </div>
-    <button onclick="showChannels('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}')" class="secondary">返回</button>
+    <div class="flex-center mt-2">
+      <button onclick="showChannels('${person.replace(/'/g, "\\'")}', '${dealer.replace(/'/g, "\\'")}')" class="btn btn-secondary">返回</button>
+    </div>
   `;
 
   const filtered = filterSheet(searchTerm);
@@ -894,7 +1525,7 @@ function showStores(person, dealer, channel) {
   );
   const tbody = document.getElementById('storeTableBody');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8">无数据</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-light">无数据</td></tr>';
     return;
   }
   rows.forEach(row => {
@@ -935,7 +1566,7 @@ function showProfile(person) {
   // 生成tab
   const tabs = ['基础信息', '团队情况', '经销商主体', '供应商主体', '店铺信息'];
   document.getElementById('profileTabs').innerHTML = tabs.map((tab, i) =>
-    `<button class="${i === 0 ? 'active' : ''}" onclick="switchTab(${i})">${tab}</button>`
+    `<button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="switchTab(${i})">${tab}</button>`
   ).join('');
 
   // 内容
@@ -957,7 +1588,7 @@ function switchTab(idx) {
 }
 
 function generateBasicHTML(profile) {
-  let html = '<table class="modal-table"><thead><tr><th>字段</th><th>值</th></tr></thead><tbody>';
+  let html = '<table class="table"><thead><tr><th>字段</th><th>值</th></tr></thead><tbody>';
   Object.entries(profile.basic).forEach(([key, value]) => {
     html += `<tr><td>${key}</td><td>${value}</td></tr>`;
   });
@@ -966,13 +1597,13 @@ function generateBasicHTML(profile) {
 }
 
 function generateTeamHTML(profile) {
-  let html = `<p><strong>总人数:</strong> ${profile.team['总人数']}</p>
-              <p><strong>总业务:</strong> ${profile.team['总业务']}</p>
-              <p><strong>25年总业绩:</strong> ${profile.team['25年总业绩']}</p>
-              <p><strong>25年实际完成:</strong> ${profile.team['25年实际完成']}</p>
-              <h4>团队组织架构:</h4><ul>`;
+  let html = `<div class="mb-2"><strong>总人数:</strong> ${profile.team['总人数']}</div>
+              <div class="mb-2"><strong>总业务:</strong> ${profile.team['总业务']}</div>
+              <div class="mb-2"><strong>25年总业绩:</strong> ${profile.team['25年总业绩']}</div>
+              <div class="mb-2"><strong>25年实际完成:</strong> ${profile.team['25年实际完成']}</div>
+              <h4 class="card-title mt-3">团队组织架构:</h4><ul>`;
   profile.team['团队组织架构'].forEach(item => {
-    html += `<li>${item}</li>`;
+    html += `<li class="mb-1">${item}</li>`;
   });
   html += '</ul>';
   return html;
@@ -980,31 +1611,31 @@ function generateTeamHTML(profile) {
 
 function generateDealersHTML(profile) {
   const rows = profile.dealers;
-  let html = '<table class="modal-table"><thead><tr><th>序号</th><th>类型</th><th>统一信用社代码</th><th>经销商主体</th><th>授权品牌</th><th>许可方式</th><th>签约类型</th><th>品类</th><th>授权开始</th><th>授权截止</th></tr></thead><tbody>';
+  let html = '<div class="table-container"><table class="table"><thead><tr><th>序号</th><th>类型</th><th>统一信用社代码</th><th>经销商主体</th><th>授权品牌</th><th>许可方式</th><th>签约类型</th><th>品类</th><th>授权开始</th><th>授权截止</th></tr></thead><tbody>';
   rows.forEach(row => {
     html += '<tr>' + Object.values(row).map(cell => `<td>${cell}</td>`).join('') + '</tr>';
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   return html;
 }
 
 function generateSuppliersHTML(profile) {
   const rows = profile.suppliers;
-  let html = '<table class="modal-table"><thead><tr><th>序号</th><th>类型</th><th>统一信用社代码</th><th>供应商主体</th><th>授权品牌</th><th>生产方式</th><th>保底申领金额（元）</th><th>品类</th><th>授权开始</th><th>授权截止</th><th>组货工厂</th></tr></thead><tbody>';
+  let html = '<div class="table-container"><table class="table"><thead><tr><th>序号</th><th>类型</th><th>统一信用社代码</th><th>供应商主体</th><th>授权品牌</th><th>生产方式</th><th>保底申领金额（元）</th><th>品类</th><th>授权开始</th><th>授权截止</th><th>组货工厂</th></tr></thead><tbody>';
   rows.forEach(row => {
     html += '<tr>' + Object.values(row).map(cell => `<td>${cell}</td>`).join('') + '</tr>';
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   return html;
 }
 
 function generateStoresHTML(profile) {
   const rows = profile.stores;
-  let html = '<table class="modal-table"><thead><tr><th>序号</th><th>类目筛选</th><th>统一信用社代码</th><th>经销商主体</th><th>授权品牌</th><th>销售渠道-大类</th><th>销售渠道-小类</th><th>店铺类型</th><th>店铺名称</th><th>品类</th><th>授权开始</th><th>授权截止</th><th>主力供应商</th><th>保证金</th><th>授权费</th><th>第几家</th></tr></thead><tbody>';
+  let html = '<div class="table-container"><table class="table"><thead><tr><th>序号</th><th>类目筛选</th><th>统一信用社代码</th><th>经销商主体</th><th>授权品牌</th><th>销售渠道-大类</th><th>销售渠道-小类</th><th>店铺类型</th><th>店铺名称</th><th>品类</th><th>授权开始</th><th>授权截止</th><th>主力供应商</th><th>本次实收保证金</th><th>25年保证金性质</th><th>25年授权费</th><th>实控人第几家店铺</th></tr></thead><tbody>';
   rows.forEach(row => {
-    html += '<tr>' + Object.values(row).slice(0,16).map(cell => `<td>${cell}</td>`).join('') + '</tr>';  // 调整列数
+    html += '<tr>' + Object.values(row).slice(0,17).map(cell => `<td>${cell}</td>`).join('') + '</tr>';  // 调整列数
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   return html;
 }
 
@@ -1037,8 +1668,9 @@ function buildChartTargetOptions(filteredSheet = currentSheet) {
 
 function toggleCompareMode() {
   compareMode = !compareMode;
-  document.getElementById('compareBtn').style.display = 'inline-block';
-  document.getElementById('compareBtn').innerText = compareMode ? '退出比较' : '比较模式';
+  const compareBtn = document.getElementById('compareBtn');
+  compareBtn.classList.toggle('hidden', !compareMode);
+  compareBtn.textContent = compareMode ? '退出比较' : '比较模式';
 }
 
 function renderChartFromControls() {
@@ -1071,21 +1703,49 @@ function renderChart(type, target, dim) {
     data.push(sum / 10000);
   }
 
-  document.getElementById('chartArea').style.display = 'block';
-  document.getElementById('chartTitle').innerText = `${target} (${curMonth}月1-${uptoDay}日) GMV趋势`;
-  document.getElementById('chartSubtitle').innerText = compareMode ? '比较模式: 当前 vs 上月' : '';
+  const chartArea = document.getElementById('chartArea');
+  chartArea.style.display = 'block';
+  document.getElementById('chartTitle').textContent = `${target} (${curMonth}月1-${uptoDay}日) GMV趋势`;
+  document.getElementById('chartSubtitle').textContent = compareMode ? '比较模式: 当前 vs 上月' : '';
 
   const ctx = document.getElementById('gmvChart').getContext('2d');
   if (gmvChart) gmvChart.destroy();
   const config = {
     type: type,
-    data: { labels, datasets: [{ label: 'GMV (万)', data, borderColor: '#c3b092', backgroundColor: 'rgba(181, 161, 126, 0.2)' }] },
-    options: { responsive: true, scales: { y: { beginAtZero: true } }, plugins: { tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(1)}万` } } } }
+    data: { 
+      labels, 
+      datasets: [{ 
+        label: 'GMV (万)', 
+        data, 
+        borderColor: '#c3b092', 
+        backgroundColor: type === 'pie' ? ['#c3b092', '#b5a17e', '#a89a8c', '#8a7a6a', '#5a4a3e'] : 'rgba(181, 161, 126, 0.2)',
+        borderWidth: 2
+      }] 
+    },
+    options: { 
+      responsive: true, 
+      scales: type !== 'pie' ? { y: { beginAtZero: true } } : {},
+      plugins: { 
+        tooltip: { 
+          callbacks: { 
+            label: ctx => type === 'pie' ? 
+              `${ctx.label}: ${ctx.parsed.toFixed(1)}万 (${((ctx.parsed / data.reduce((a, b) => a + b, 0)) * 100).toFixed(1)}%)` : 
+              `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}万` 
+          } 
+        } 
+      } 
+    }
   };
-  if (compareMode) {
+  if (compareMode && type !== 'pie') {
     // 简化，上月数据占位
     const prevData = data.map(d => d * 0.9);
-    config.data.datasets.push({ label: '上月', data: prevData, borderColor: '#8a7a6a', backgroundColor: 'rgba(138, 122, 106, 0.2)' });
+    config.data.datasets.push({ 
+      label: '上月', 
+      data: prevData, 
+      borderColor: '#8a7a6a', 
+      backgroundColor: 'rgba(138, 122, 106, 0.2)',
+      borderWidth: 2
+    });
   }
   gmvChart = new Chart(ctx, config);
 }
@@ -1100,6 +1760,7 @@ function exportData() {
   XLSX.utils.book_append_sheet(wb, ws, `${currentYear}-${currentMonth}月`);
   XLSX.writeFile(wb, `GMV_${currentYear}-${currentMonth}.xlsx`);
 }
+</script>
 </script>
 </body>
 </html>
